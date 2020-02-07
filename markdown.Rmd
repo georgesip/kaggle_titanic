@@ -88,7 +88,7 @@ ftable(table3)
 ```
 
 
-This table is slightly more diifficult to interpret, but ones notable takeaway is that both trends we identified within Pclass and Sex still hold. This could be variables used in classification. We not turn our attention to numerical variables.
+This table is slightly more diifficult to interpret, but ones notable takeaway is that both trends we identified within Pclass and Sex still hold. This could be variables used in classification. We now turn our attention to numerical variables.
 
 
 
