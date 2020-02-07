@@ -44,7 +44,57 @@ test <- read_csv("test.csv")
 
 Explore dataset
 ```{r}
+attach(train)
 head(train)
-dim(train)
+colSums(is.na(train))
+```
+
+
+
+There are quite a few missing observations in Age and Cabin, as well as 2 observations in Embarked. Some of the indicator variables are also classified as num. 
+
+```{r}
+#First, deal with the factor variables
+factors <- c("Survived", "Pclass", "Sex", "Embarked")
+train[,factors] <- lapply(train[,factors], factor)
+```
+
+
+
+Now we have convertd to factor variables, we can conduct some preliminary descriptive analysis. A correlation plot will be more difficult to interpret as we have a few factor variables. 
+```{r}
+#First look at Passenger Class
+table1 <- table(Pclass,Survived)
+ftable(round(prop.table(table1), 3))
+```
+
+
+
+From this table, we can see that there is quite a clear relationship between survival and Pclass, with a higher proportion of survivors in better passenger classes. 
+```{r}
+#Now look at Sex
+table2 <- table(Sex, Survived)
+ftable(table2)
+```
+
+
+
+It is evident that a higher proportion of females survived compared to males
+
+```{r}
+#Look at the combined table
+table3 <- table(Pclass, Sex, Survived)
+ftable(table3)
+```
+
+
+This table is slightly more diifficult to interpret, but ones notable takeaway is that both trends we identified within Pclass and Sex still hold. This could be variables used in classification. We not turn our attention to numerical variables.
+
+
+
+```{r}
+
+```
+
 ```
 
