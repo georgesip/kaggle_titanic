@@ -93,11 +93,33 @@ This table is slightly more diifficult to interpret, but ones notable takeaway i
 
 
 ```{r}
-hist(Age[Survived == 0], density = 50, col = 2, angle = 0)
-hist(Age[Survived == 1], add=TRUE, density = 25, col = 3, angle = 0)
-```
 
 ```
+
+
+
+```{r}
+#Clean test set as well and add a Survived column 
+factors <- c("Pclass", "Sex", "Embarked")
+test[,factors] <- lapply(test[,factors], factor)
+```
+
+
+
+```{r}
+#Try LDA
+lda.fit=lda(Survived~Sex + Age + Pclass + SibSp + Parch + Fare,data=train)
+lda.pred=predict(lda.fit, test)
+lda.class=lda.pred$class
+table(lda.class ,train$Survived)
+mean(lda.class==test$Direction)
+#We can also apply a 50% threshold to the data
+sum(lda.pred$posterior[,1]>=.5)
+sum(lda.pred$posterior[,1]<.5)
+```
+
+
+
 ```{r}
 mean(train$Survived)
 ```
