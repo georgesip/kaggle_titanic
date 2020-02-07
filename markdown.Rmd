@@ -93,7 +93,8 @@ This table is slightly more diifficult to interpret, but ones notable takeaway i
 
 
 ```{r}
-
+hist(Age[Survived == 0], density = 50, col = 2, angle = 0)
+hist(Age[Survived == 1], add=TRUE, density = 25, col = 3, angle = 0)
 ```
 
 ```
