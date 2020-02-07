@@ -1,0 +1,24 @@
+"0","set.seed(59)"
+"0","tenth.fn <- function(x, ind){"
+"0","  quantile(x[ind], 0.1)"
+"0","boot(Boston$medv, tenth.fn, R=1000)"
+"1","
+ORDINARY NONPARAMETRIC BOOTSTRAP
+
+"
+"1","
+Call:
+"
+"1","boot(data = Boston$medv, statistic = tenth.fn, R = 1000)
+"
+"1","
+
+Bootstrap Statistics :
+"
+"1","   "
+"1","  bias  "
+"1","  std. error"
+"1","
+t1*"
+"1","    12.75"
+"1","   0.4944008"

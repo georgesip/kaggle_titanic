@@ -1,0 +1,241 @@
+---
+title: "Econ 187 Homework 1"
+author: "Zhijian Li"
+date: "1/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+library(tidyverse)
+library(readxl)
+```
+
+
+```{r}
+Worldhappiness_Data <- read_excel("C://Users//zhiji//Dropbox//econ187//Worldhappiness_Data.xlsx")
+```
+
+#### Q1
+
+We re-name some variables for conciseness. The variable definitions are found [here](https://s3.amazonaws.com/happiness-report/2018/Appendix1ofChapter2.pdf).
+
+```{r}
+names(Worldhappiness_Data)[c(6, 7, 9, 12, 15, 16)] <- c("life_expectancy", "freedom", "corruption", "confidence", "gini_wb", "gini_gallup")
+```
+
+
+```{r}
+summary(Worldhappiness_Data[ , c(-1, -2, -13, -14)])
+```
+
+Variable: Life Ladder
+
+```{r}
+hist(Worldhappiness_Data$`Life Ladder`)
+```
+
+
+From the histogram it looks like the dependent variable (happiness scores) follows a roughly bell-shaped distribution centered at around 5.5.
+
+The following histograms of the predictors will give us a better intuitive idea of their distribution.
+
+```{r}
+hist(Worldhappiness_Data$`Log GDP per capita`)
+hist(Worldhappiness_Data$`Social support`)
+hist(Worldhappiness_Data$life_expectancy)
+hist(Worldhappiness_Data$freedom)
+hist(Worldhappiness_Data$Generosity)
+hist(Worldhappiness_Data$corruption)
+hist(Worldhappiness_Data$`Positive affect`)
+hist(Worldhappiness_Data$`Negative affect`)
+hist(Worldhappiness_Data$confidence)
+hist(Worldhappiness_Data$gini_wb)
+hist(Worldhappiness_Data$gini_gallup)
+
+```
+
+
+
+```{r}
+plot(Worldhappiness_Data[ , c(-1, -2, -13, -14)])
+```
+
+
+The figure above plots the pairwise correlations between all the quantitative variables. From the first row of plots we can have an intuitive picture of the how and how strongly the predictors correlate with the Life Ladder variable. We can also look at the other plots for a rough picture of how the predictors correlate with each other, which we can refer to in further analysis if we suspect issues like multicollinearity. 
+
+
+#### Q2
+
+```{r}
+base.mod <- lm(`Life Ladder` ~ `Log GDP per capita` + `Social support` + life_expectancy + freedom + Generosity + corruption + `Positive affect` + `Negative affect` + confidence + gini_wb + gini_gallup , data = Worldhappiness_Data)
+
+summary(base.mod)
+
+```
+
+
+It appears that the predictors with positively correlated with the happiness scores are: GDP per capita, social support, freedom to make life choices, generosity, positive affect, negative affect, and the GINI of household income reported by Gallup.
+Negatively correlated with happiness scores: corruption perceptions, confidence in national government, and the world bank GINI average
+
+The predictors significant at the 0.05 level of significance are: GDP per capita, social support, perceptions of corruption, positive affect, negative affect, confidence in national government, and the GINI index (World Bank estimate, average 2000-16).
+
+Taking only the predictors significant at the 0.05 level, this regression analysis tells the story that GDP per capita and social support increases happiness, as do the positive/negative affect scores which represents positive and negative emotions in survey respondents. Countries whose populace perceive more corruption and are more confident in national government. 
+
+#### Q3
+
+```{r echo=FALSE, warning = FALSE, message=FALSE}
+library(car)
+```
+
+
+```{r}
+outlierTest(base.mod)
+```
+
+
+There doesn't seem to be an obvious outlier since there's no particularly small Bonferroni p-value.
+
+
+```{r}
+influenceIndexPlot(base.mod, vars = "Cook")
+```
+
+
+From the Cook's distance plot, it looks like Rwanda, and possibly Botswana and Benin are possibly influential observations.
+
+```{r}
+influenceIndexPlot(base.mod,vars="hat")
+```
+
+From the hat-value plot, we see that Haiti could be a high-leverage observation, as well as Rwanda, which was identified to be influential.
+
+
+```{r}
+influencePlot(base.mod)
+```
+
+Indeed, our influence plot identifies Benin, Rwanda, Botswana, and Haiti as potential outliers. We may decide to remove them as these data points may have highly peculiar conditions that unduly influences our regression.
+
+```{r}
+original_Worldhappiness <- Worldhappiness_Data
+Worldhappiness_Data <- Worldhappiness_Data[c(-12, -15, -49, -103), ]
+```
+
+```{r}
+base.mod.rm <- lm(`Life Ladder` ~ `Log GDP per capita` + `Social support` + life_expectancy + freedom + Generosity + corruption + `Positive affect` + `Negative affect` + confidence + gini_wb + gini_gallup , data = Worldhappiness_Data)
+summary(base.mod)
+summary(base.mod.rm)
+```
+
+#### Q4
+
+```{r}
+library(leaps)
+ss <- regsubsets(`Life Ladder` ~ `Log GDP per capita` + `Social support` + life_expectancy + freedom + Generosity + corruption + `Positive affect` + `Negative affect` + confidence + gini_wb + gini_gallup, method=c("exhaustive"), nbest=2, data = Worldhappiness_Data)
+
+subsets(ss,statistic="cp",legend=F,main="Mallows CP",ylim = c(0,20))
+```
+
+From the Mallows CP plot, it appears that the linear model that includes the relevant variables has these 7 predictors: GDP per capita, social support, freedom to make life choices, corruption perceptions, positive affect, negative affect, and confidence. The irrelevant predictors are generosity, life expectancy, and the 2 GINI variables.
+
+```{r}
+mod.cp <- lm(`Life Ladder` ~ `Log GDP per capita` + `Social support` + freedom + corruption + `Positive affect` + `Negative affect` + confidence, data = Worldhappiness_Data)
+
+summary(mod.cp)
+```
+```{r}
+vif(base.mod.rm)
+vif(mod.cp)
+```
+Looking at the VIF of the predictors, it appears that any predictors that were suspected to suffer from multicollinearity have been removed in the model optimized based on Mallows CP.
+
+#### Q5
+
+```{r}
+residualPlot(mod.cp, type = "rstandard")
+
+```
+
+Looking at the scatterplot of the standardized residuals against the fitted values, it appears that the residuals are largely consistent independent of the fitted values.
+
+#### Q6
+```{r echo=FALSE, warning = FALSE, message=FALSE}
+library(lmtest)
+```
+
+
+```{r}
+resettest(mod.cp, power = 2)
+```
+
+The RESET test gives a p-value of 0.5859, which indicates that the coefficient for the squared term can be taken as 0. The model seems to be correctly specified.
+
+#### Q7
+```{r}
+library(car)
+spreadLevelPlot(mod.cp)
+bptest(mod.cp)
+```
+
+By the White Test, we cannot reject the null hypothesis under a 0.05 level of significance. However the low p-value means that we should still suspect heteroskedasticity to be present. We may try transforming the dependent variable with the suggested transformation in the spreadLevelPlot output i.e. a quadratic transformation.
+
+```{r}
+ll2 <- Worldhappiness_Data$`Life Ladder` * Worldhappiness_Data$`Life Ladder`
+mod.quad <- lm(ll2 ~ `Log GDP per capita` + `Social support` + freedom + corruption + `Positive affect` + `Negative affect` + confidence, data = Worldhappiness_Data)
+summary(mod.quad)
+
+bptest(mod.quad)
+```
+
+Indeed, the White test on the transformed model indicates no heteroskedasticity.
+
+#### Q8
+
+
+We use Box-Tidwell to check for predictors that enter non-linearly. 
+
+
+```{r}
+boxTidwell(ll2 ~ `Log GDP per capita` + `Social support` + freedom + corruption + `Positive affect` + `Negative affect` + confidence, data = Worldhappiness_Data)
+
+```
+
+At 0.05 level of significance, the only candidate for transformation is the Log GDP per capita variable. However, transforming seems inappropriate in this context since the variable is already transformed by taking log, which is a fairly standard transformation for GDP per capita. Also the lambda suggested seems unrealistic.
+
+
+AIC and BIC doesn't work for the model with the transformed dependent variable because the residuals are inflated by the transformation. To verify our choice of predictors, we can compare the AIC and BIC for the baseline model and the model modified based on Mallows Cp. 
+```{r, warning=FALSE}
+AIC(base.mod, mod.cp)
+BIC(base.mod, mod.cp)
+```
+
+Indeed, the modified model is preferred.
+
+#### Q9
+
+```{r}
+Worldhappiness_Data2017 <- read_excel("C://Users//zhiji//Dropbox//econ187//Worldhappiness_Data2017.xlsx")
+Worldhappiness_Data2016 <- read_excel("C://Users//zhiji//Dropbox//econ187//Worldhappiness_Data2016.xlsx")
+```
+
+
+```{r}
+ll2_2017 <- Worldhappiness_Data2017$`Life Ladder` * Worldhappiness_Data2017$`Life Ladder`
+ll2_2016 <- Worldhappiness_Data2016$`Life Ladder` * Worldhappiness_Data2016$`Life Ladder`
+
+mod2017 <- lm(ll2_2017 ~ `Log GDP per capita` + `Social support` + `Freedom to make life choices` + `Perceptions of corruption` + `Positive affect` + `Negative affect` + `Confidence in national government`, data = Worldhappiness_Data2017)
+
+mod2016 <- lm(ll2_2016 ~ `Log GDP per capita` + `Social support` + `Freedom to make life choices` + `Perceptions of corruption` + `Positive affect` + `Negative affect` + `Confidence in national government`, data = Worldhappiness_Data2016)
+
+summary(mod2017)
+summary(mod2016)
+```
+The variable negative affect doesn't seem to be statistically significant for the 2017 and 2016 data.
+
+#### Q10
+Overall, it seems that the life ladder scores are computed by entering linearly the following predictors: Log GDP per capita, Social support, Freedom to make life choices, Perceptions of corruption, Positive affect, Negative affect, and Confidence in national government. Some sort of transformation is then done to the scores, probably to normalize it to the fixed scale. The interpretations of the coefficients are mostly as expected, with the possible exception of the confidence in national government variable, which negatively affects the happiness scores.
+

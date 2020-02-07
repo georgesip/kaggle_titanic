@@ -1,0 +1,482 @@
+---
+title: "Homework 2"
+author: "Zhijian Li"
+date: "1/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### 4.10
+#### a)
+
+```{r}
+library(ISLR)
+data("Weekly")
+```
+
+```{r}
+summary(Weekly)
+```
+The market has gone up on more days than it's gone down.
+```{r}
+cor(Weekly[ ,-9])
+```
+
+```{r}
+pairs(Weekly)
+```
+
+
+We can't really tell anything from the correlation matrix or pairwise scatterplot, except perhaps that the trading volume has been increasing over time. Specifically the Today variable doesn't seem to be closely correlated to any of the predictors, which is expected.
+
+#### b)
+
+```{r}
+attach(Weekly)
+```
+
+
+```{r}
+glm.fits <- glm(Direction∼Lag1+Lag2+Lag3+Lag4+Lag5+Volume, data=Weekly, family=binomial )
+summary(glm.fits)
+```
+
+Only the Lag2 variable is statistically significant; it is positively associated with the response variable.
+
+#### c)
+
+```{r}
+glm.probs <- predict(glm.fits, type="response")
+glm.pred <- rep("Down", 1089)
+glm.pred[glm.probs >.5] <- "Up"
+table(glm.pred, Direction)
+```
+
+With 0.5 as the threshold, the logistic model is predicting the market to go up at too high a frequency. There are many more false positives than false negatives.
+
+#### d)
+
+```{r}
+weekly.train.log <- (Year <= 2008)
+weekly.test <- Weekly[!weekly.train.log, ]
+Direction.test <- Direction[!weekly.train.log]
+nrow(weekly.test)
+```
+
+```{r}
+glm.fits <- glm(Direction∼Lag2 ,data = Weekly ,family = binomial, subset = weekly.train.log)
+glm.probs <- predict(glm.fits, weekly.test, type = "response")
+dim(weekly.test)
+glm.pred <- rep("Down", 104)
+glm.pred[glm.probs > .5] <- "Up"
+table(glm.pred, Direction.test)
+mean(glm.pred == Direction.test)
+```
+
+#### e)
+```{r}
+library(MASS)
+```
+
+
+```{r}
+lda.train <- lda(Direction~Lag2, data = Weekly, subset = weekly.train.log)
+lda.train
+```
+
+
+```{r}
+lda.pred.test <- predict(lda.train, weekly.test, type = "response")
+table(lda.pred.test$class, Direction.test)
+mean(lda.pred.test$class == Direction.test)
+```
+
+#### f)
+```{r}
+qda.train <- qda(Direction~Lag2, data = Weekly, subset = weekly.train.log)
+qda.train
+```
+
+
+```{r}
+qda.pred.test <- predict(qda.train, weekly.test, type = "response")
+table(qda.pred.test$class, Direction.test)
+mean(qda.pred.test$class == Direction.test)
+```
+
+#### g)
+```{r}
+library(class)
+```
+
+```{r}
+train.X <- matrix(Lag2[weekly.train.log])
+test.X <- matrix(Lag2[!weekly.train.log])
+train.Direction <- Direction[weekly.train.log]
+```
+
+```{r}
+set.seed(410)
+knn.pred=knn(train.X, test.X, train.Direction, k = 1)
+table(knn.pred, Direction.test)
+mean(knn.pred == Direction.test)
+
+```
+
+#### h)
+Judging by the fraction of correct predictions, LDA and logistic regression appear to be the best methods for this model. However, this isn't conclusive because we limited ourselves to the given thresholds for LDA/QDA and k=1 for KNN. 
+
+#### i)
+We try including Lag1 in the model since it is the closest in timescale, and because Lag1 had a relatively low p-value from the logistic regression.
+
+```{r}
+glm.fits.lags12 <- glm(Direction ∼ Lag1 + Lag2, data = Weekly ,family = binomial, subset = weekly.train.log)
+glm.probs.lags12 <- predict(glm.fits.lags12, weekly.test, type = "response")
+glm.pred.lags12 <- rep("Down", 104)
+glm.pred.lags12[glm.probs.lags12 > .5] <- "Up"
+table(glm.pred.lags12, Direction.test)
+mean(glm.pred.lags12 == Direction.test)
+```
+Including Lag1 in the logistic regression reduces the accuracy of predictions.
+
+
+Perhaps the market today respond to the volatility yesterday. We try predicting with Lag1 squared to test this hypothesis.
+
+
+```{r}
+glm.fits.lag1sq <- glm(Direction∼ I(Lag1^2), data = Weekly, family=binomial, subset=weekly.train.log)
+glm.probs.lag1sq <- predict(glm.fits.lag1sq, weekly.test, type = "response")
+glm.pred.lag1sq <- rep("Down", 104)
+glm.pred.lag1sq[glm.probs.lag1sq > .5] <- "Up"
+table(glm.pred.lag1sq, Direction.test)
+mean(glm.pred.lag1sq == Direction.test)
+```
+
+It turns out that this model also performs worse than the original logistic regression.
+
+
+We now try KNN with k=3 and k=5.
+
+
+```{r}
+knn.pred.3=knn(train.X, test.X, train.Direction, k = 3)
+table(knn.pred.3, Direction.test)
+mean(knn.pred.3 == Direction.test)
+
+knn.pred.5=knn(train.X, test.X, train.Direction, k = 5)
+table(knn.pred.5, Direction.test)
+mean(knn.pred.5 == Direction.test)
+```
+
+KNN with k=3 works best, but it's still not better in accuracy than logistic/LDA methods.
+
+
+```{r}
+detach(Weekly)
+```
+
+
+### 4.11
+#### a)
+```{r}
+data("Auto")
+head(Auto)
+dim(Auto)
+```
+
+
+```{r}
+attach(Auto)
+```
+
+```{r}
+mpg01 <- as.numeric(mpg >= median(mpg))
+Auto <- data.frame(Auto, mpg01)
+```
+
+#### b)
+
+```{r}
+plot(displacement, mpg01)
+
+plot(horsepower, mpg01)
+
+plot(weight, mpg01)
+
+plot(acceleration, mpg01)
+
+
+boxplot(cylinders[mpg01==0], cylinders[mpg01==1], ylab = "cylinders", xlab = "mpg01")
+boxplot(year[mpg01==0], year[mpg01==1], ylab = "year", xlab = "mpg01")
+boxplot(origin[mpg01==0], origin[mpg01==1], ylab = "origin", xlab = "mpg01")
+
+```
+
+
+All the other variables (except name), have some association with mpg01. At first glance from these figures, horsepower, weight, and cylinders appear to be good candidates for predictors. 
+
+#### c)
+```{r}
+set.seed(411)
+train.ind <- sort(sample(392, 196))
+train.log <- rep(F, 392)
+train.log[train.ind] <- T
+auto.train <- rbind(Auto[train.log, ])
+auto.test <- rbind(Auto[!train.log, ])
+```
+
+#### d)
+```{r}
+lda.auto.train <- lda(mpg01~horsepower+weight+cylinders, data = auto.train)
+lda.auto.train
+lda.auto.pred <- predict(lda.auto.train, auto.test, type = "response")
+table(lda.auto.pred$class, auto.test$mpg01)
+mean(lda.auto.pred$class == auto.test$mpg01)
+```
+
+The test error for LDA is `r mean(lda.auto.pred$class == auto.test$mpg01)`%.
+
+#### e)
+
+```{r}
+qda.auto.train <- qda(mpg01~horsepower+weight+cylinders, data = auto.train)
+qda.auto.train
+qda.auto.pred <- predict(qda.auto.train, auto.test, type = "response")
+table(qda.auto.pred$class, auto.test$mpg01)
+mean(qda.auto.pred$class == auto.test$mpg01)
+```
+
+The test error for QDA is `r mean(qda.auto.pred$class == auto.test$mpg01)`%.
+
+
+#### f)
+```{r}
+glm.auto.train <- glm(mpg01~horsepower+weight+cylinders, data=auto.train)
+glm.auto.probs <- predict(glm.auto.train, auto.test, type = "response")
+glm.auto.pred <- rep(0,196)
+glm.auto.pred[glm.auto.probs > 0.5] <- 1
+table(glm.auto.pred, auto.test$mpg01)
+mean(glm.auto.pred == auto.test$mpg01)
+```
+
+The test error for the logistic regression is `r mean(glm.auto.pred == auto.test$mpg01)`%.
+
+
+#### g)
+```{r}
+knn.auto.train <- cbind(auto.train$horsepower, auto.train$weight, auto.train$cylinders)
+knn.auto.test <- cbind(auto.test$horsepower, auto.test$weight, auto.test$cylinders)
+knn.auto.1 <- knn(knn.auto.train, knn.auto.test, auto.train$mpg01, k=1)
+table(knn.auto.1, auto.test$mpg01)
+mean(knn.auto.1 == auto.test$mpg01)
+```
+
+The test error for KNN with k=1 is `r mean(knn.auto.1 == auto.test$mpg01)`%.
+
+```{r}
+knn.auto.3 <- knn(knn.auto.train, knn.auto.test, auto.train$mpg01, k=3)
+table(knn.auto.3, auto.test$mpg01)
+mean(knn.auto.3 == auto.test$mpg01)
+```
+The test error for KNN with k=3 is `r mean(knn.auto.3 == auto.test$mpg01)`%.
+
+
+```{r}
+knn.auto.5 <- knn(knn.auto.train, knn.auto.test, auto.train$mpg01, k=5)
+table(knn.auto.5, auto.test$mpg01)
+mean(knn.auto.5 == auto.test$mpg01)
+```
+The test error for KNN with k=5 is `r mean(knn.auto.5 == auto.test$mpg01)`%.
+
+k=3 seems to work best for the KNN method.
+
+```{r}
+detach(Auto)
+```
+
+
+
+### 5.5
+#### a)
+
+```{r}
+data("Default")
+
+glm(default~income+balance, data=Default, family = binomial)
+
+```
+
+#### b)
+```{r}
+set.seed(55)
+train1.ind <- sample(10000,5000)
+train1.log <- rep(F, 10000)
+train1.log[train1.ind] <- T
+
+def.train1 <- Default[train1.ind, ]
+def.val1 <- Default[!train1.log, ]
+
+def.glm1 <- glm(default~income+balance, data=def.train1, family = binomial)
+def.prob1 <- predict(def.glm1, def.val1, type="response")
+def.pred1 <- rep("No", 5000)
+def.pred1[def.prob1 > 0.5] <- "Yes"
+
+table(def.pred1, def.val1$default)
+mean(def.pred1 != def.val1$default)
+
+```
+
+#### c)
+```{r}
+train2.ind <- sample(10000,5000)
+train2.log <- rep(F, 10000)
+train2.log[train2.ind] <- T
+
+def.train2 <- Default[train2.ind, ]
+def.val2 <- Default[!train2.log, ]
+
+def.glm2 <- glm(default~income+balance, data=def.train2, family = binomial)
+def.prob2 <- predict(def.glm2, def.val2, type="response")
+def.pred2 <- rep("No", 5000)
+def.pred2[def.prob2 > 0.5] <- "Yes"
+
+table(def.pred2, def.val2$default)
+mean(def.pred2 != def.val2$default)
+```
+```{r}
+train3.ind <- sample(10000,5000)
+train3.log <- rep(F, 10000)
+train3.log[train3.ind] <- T
+
+def.train3 <- Default[train3.ind, ]
+def.val3 <- Default[!train3.log, ]
+
+def.glm3 <- glm(default~income+balance, data=def.train3, family = binomial)
+def.prob3 <- predict(def.glm3, def.val3, type="response")
+def.pred3 <- rep("No", 5000)
+def.pred3[def.prob3 > 0.5] <- "Yes"
+
+table(def.pred3, def.val3$default)
+mean(def.pred3 != def.val3$default)
+```
+
+```{r}
+train4.ind <- sample(10000,5000)
+train4.log <- rep(F, 10000)
+train4.log[train4.ind] <- T
+
+def.train4 <- Default[train4.ind, ]
+def.val4 <- Default[!train4.log, ]
+
+def.glm4 <- glm(default~income+balance, data=def.train4, family = binomial)
+def.prob4 <- predict(def.glm4, def.val4, type="response")
+def.pred4 <- rep("No", 5000)
+def.pred4[def.prob4 > 0.5] <- "Yes"
+
+table(def.pred4, def.val4$default)
+mean(def.pred4 != def.val4$default)
+```
+
+The validation set errors for the 4 validation sets are between 2%-3%. However there are probably too many false negatives at the 0.5 threshold in the context of this problem.
+
+
+#### d)
+```{r}
+Default$student.log <- Default$student == "Yes"
+
+trainst.ind <- sample(10000,5000)
+trainst.log <- rep(F, 10000)
+trainst.log[trainst.ind] <- T
+
+def.trainst <- Default[trainst.ind, ]
+def.valst <- Default[!trainst.log, ]
+
+def.glmst <- glm(default~income+balance+student.log, data=def.trainst, family = binomial)
+def.probst <- predict(def.glmst, def.valst, type="response")
+def.predst <- rep("No", 5000)
+def.predst[def.probst > 0.5] <- "Yes"
+
+table(def.predst, def.valst$default)
+mean(def.predst != def.valst$default)
+```
+Including a dummy variable for student doesn't seem to reduce the test error rate.
+
+### 5.9
+```{r}
+library(MASS)
+data("Boston")
+```
+#### a)
+```{r}
+muhat <- mean(Boston$medv)
+muhat
+```
+
+#### b) 
+```{r}
+muse <- sd(Boston$medv)/sqrt(length(Boston$medv))
+muse
+```
+#### c)
+```{r}
+library(boot)
+mean.boot <- function(x, ind){
+  mean(x[ind])
+}
+set.seed(59)
+boot(Boston$medv, mean.boot, R=1000)
+```
+
+The standard error obtained via bootstrap is 0.4149, close to the estimate of 0.4089 obtained from the entire sample.
+
+#### d)
+```{r}
+medv.t <- t.test(Boston$medv)
+medv.t
+```
+The bootstrap estimate for the 95% confidence interval is `r c(muhat-2*0.4149207, muhat+2*0.4149207)`, compared to the t-test estimate of `r medv.t$conf.int`.
+
+#### e)
+```{r}
+
+mumed <- median(Boston$medv)
+mumed
+```
+#### f)
+```{r}
+med.fn<- function(x, ind){
+  median(x[ind])
+}
+set.seed(59)
+boot(Boston$medv, med.fn, R=1000)
+```
+
+The standard error of the median is estimated to be 0.381. This number is smaller than the standard error of the mean.
+
+#### g)
+
+```{r}
+quantile(Boston$medv, 0.1)
+
+```
+
+#### h)
+
+```{r}
+set.seed(59)
+tenth.fn <- function(x, ind){
+  quantile(x[ind], 0.1)
+}
+boot(Boston$medv, tenth.fn, R=1000)
+```
+
+The bootstrap method estimated a standard error of 0.4944 for the tenth percentile. This is larger than the standard error for the mean and the median. This makes sense because the repeated sampling obtains fewer values away from the median due to the shape of the distibution, so the tenth percentile estimates are less "stable" than the mean/median.
+
+
+
+
+
+

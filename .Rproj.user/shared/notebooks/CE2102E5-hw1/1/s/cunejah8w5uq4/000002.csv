@@ -1,0 +1,4 @@
+"0","boxTidwell(ll2 ~ `Log GDP per capita` + `Social support` + freedom + corruption + `Positive affect` + `Negative affect` + confidence, data = Worldhappiness_Data)"
+"2","Error in eval(m$data, sys.frame(sys.parent())) : 
+  object 'Worldhappiness_Data' not found
+"

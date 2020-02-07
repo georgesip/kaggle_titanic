@@ -1,0 +1,2 @@
+"0","train$Sex01 <- train$Sex == ""female"""
+"0","test$Sex01 <- test$Sex == ""female"""

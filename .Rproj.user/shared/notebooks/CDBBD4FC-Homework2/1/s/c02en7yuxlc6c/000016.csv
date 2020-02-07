@@ -1,0 +1,29 @@
+"0","library(boot)"
+"0","mean.boot <- function(x, ind){"
+"0","  mean(x[ind])"
+"0","}"
+"0","boot(Boston$medv, mean.boot, R=1000)"
+"1","
+ORDINARY NONPARAMETRIC BOOTSTRAP
+
+"
+"1","
+Call:
+"
+"1","boot(data = Boston$medv, statistic = mean.boot, R = 1000)
+"
+"1","
+
+Bootstrap Statistics :
+"
+"1","   "
+"1"," original"
+"1","       bias  "
+"1","  std. error"
+"1","
+t1*"
+"1"," 22.53281"
+"1"," -0.007418775"
+"1","   0.4149207"
+"1","
+"

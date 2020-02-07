@@ -1,0 +1,6 @@
+"0","med.fn<- function(x, ind){"
+"0","}"
+"0","mumed <- median(Boston$medv)"
+"0","mumed"
+"1","[1]"
+"1"," 21.2"

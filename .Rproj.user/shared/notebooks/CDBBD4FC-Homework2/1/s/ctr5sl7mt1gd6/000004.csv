@@ -1,0 +1,8 @@
+"0","se.fn <- function(x, ind){"
+"0","  sd(x[ind])/sqrt(length(x))"
+"0","}"
+"0","muse <- sd(Boston$medv)/sqrt(length(Boston$medv))"
+"0","muse"
+"1","[1]"
+"1","
+"

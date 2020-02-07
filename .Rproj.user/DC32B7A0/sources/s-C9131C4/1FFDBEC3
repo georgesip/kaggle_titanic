@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1581110652647.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3228192798",
+    "id" : "1FFDBEC3",
+    "lastKnownWriteTime" : 1581111908,
+    "last_content_update" : 1581117907849,
+    "path" : "C:/Users/zhiji/Dropbox/kaggle_titanic/markdown.Rmd",
+    "project_path" : "markdown.Rmd",
+    "properties" : {
+        "cursorPosition" : "145,0",
+        "last_setup_crc32" : "C9131C4bb338d19",
+        "scrollLine" : "101"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

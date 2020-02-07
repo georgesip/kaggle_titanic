@@ -1,0 +1,26 @@
+"0","set.seed(59)"
+"0","boot(Boston$medv, med.fn, R=1000)"
+"1","
+ORDINARY NONPARAMETRIC BOOTSTRAP
+
+"
+"1","
+Call:
+"
+"1","boot(data = Boston$medv, statistic = med.fn, R = 1000)
+"
+"1","
+
+Bootstrap Statistics :
+"
+"1","   "
+"1"," original"
+"1","  bias  "
+"1","  std. error"
+"1","
+t1*"
+"1","     21.2"
+"1"," -0.0113"
+"1","   0.3810873"
+"1","
+"
