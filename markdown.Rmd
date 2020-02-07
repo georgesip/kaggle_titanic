@@ -47,4 +47,107 @@ Explore dataset
 head(train)
 dim(train)
 ```
+```{r}
+mean(train$Survived)
+```
+
+
+```{r}
+train$Sex01 <- train$Sex == "female"
+test$Sex01 <- test$Sex == "female"
+```
+
+
+
+
+
+```{r}
+glm1 <- glm(Survived ~ Pclass + Sex01 + Age + SibSp + Parch + Fare, data = train, family = "binomial")
+glm1
+```
+
+```{r}
+influenceIndexPlot(glm1, vars="Cook")
+```
+
+```{r}
+resettest(glm1, power=2)
+```
+
+```{r}
+glm2 <- glm(Survived ~ Pclass + Sex01 + Age + I(Age^2) + SibSp + Parch + Fare, data = train, family = "binomial")
+glm2
+```
+
+
+```{r}
+resettest(glm2, power = 2)
+```
+
+```{r}
+library(leaps)
+```
+
+
+
+```{r}
+ss <- regsubsets(Survived ~ Pclass + Sex01 + Age + I(Age^2) + SibSp + Parch + Fare, data = train, method = "exhaustive", nbest = 2)
+subsets(ss,statistic="cp",legend=F, ylim = c(0,20))
+
+```
+```{r}
+glm3 <- glm(Survived ~ Pclass + Sex01 + Age + I(Age^2) + SibSp, data = train, family = "binomial")
+glm3
+```
+
+```{r}
+AIC(glm1,glm2,glm3)
+```
+
+
+
+
+
+```{r warning=FALSE}
+lda1 <- lda(Survived ~ Pclass + Sex01 + Age + SibSp + Parch + Fare, data = train, na.action = na.exclude)
+
+lda1pred <- predict(lda1, train, type = "response", na.action = na.exclude)
+
+mean(lda1pred$class == train$Survived, na.rm = T)
+```
+
+```{r warning=FALSE}
+lda2 <- lda(Survived ~ Pclass + Sex01 + Age + I(Age^2) + SibSp, data = train, na.action = na.exclude)
+
+lda2pred <- predict(lda2, train, type = "response", na.action = na.exclude)
+
+mean(lda2pred$class == train$Survived, na.rm = T)
+```
+
+
+```{r warning=FALSE}
+qda1 <- qda(Survived ~ Pclass + Sex01 + Age + SibSp + Parch + Fare, data = train, na.action = na.exclude)
+
+qda1pred <- predict(qda1, train, type = "response", na.action = na.exclude)
+
+mean(qda1pred$class == train$Survived, na.rm = T)
+```
+
+```{r warning=FALSE}
+qda2 <- qda(Survived ~ Pclass + Sex01 + Age + I(Age^2) + SibSp , data = train, na.action = na.exclude)
+
+qda2pred <- predict(qda2, train, type = "response", na.action = na.exclude)
+
+mean(qda2pred$class == train$Survived, na.rm = T)
+```
+
+```{r}
+library(lava)
+```
+
+
+```{r}
+cv.err <- cv.glm(train, glm3)
+cv.err$delta
+```
 
