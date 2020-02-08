@@ -163,10 +163,10 @@ Using QDA with the aforementioned model alongside Fare increases our accuracy to
 ```{r}
 #Try kNN model
 train.knn = cbind(Sex,Age,Pclass,SibSp,Parch,Fare)[train.vector, ]
-test.knn = train.knn = cbind(Sex,Age,Pclass,SibSp,Parch,Fare)[-train.vector, ]
+test.knn = cbind(Sex,Age,Pclass,SibSp,Parch,Fare)[-train.vector, ]
 set.seed(1)
 # KNN(1)
-knn.pred = knn(train.knn, test.knn, train.set, k = 3, na.action=na.omit)
+knn.pred = knn(train.set, test.set, k = 3)
 mean(knn.pred == validation.set)
 ```
 
