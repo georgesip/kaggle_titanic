@@ -106,7 +106,7 @@ hist(Age[Survived == 1], add=TRUE, density = 25, col = 3, angle = 0)
 set.seed(1)
 train.vector = sample(1:891,500)
 train.set = train[train.vector,]
-test.set = Default[-train.vector,]
+test.set = train[-train.vector,]
 ```
 
 
