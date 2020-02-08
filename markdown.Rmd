@@ -107,6 +107,8 @@ set.seed(1)
 train.vector = sample(1:891,500)
 train.set = train[train.vector,]
 test.set = train[-train.vector,]
+#validation
+validation.set = train$Survived[-train.vector]
 ```
 
 
@@ -120,11 +122,11 @@ test[,factors] <- lapply(test[,factors], factor)
 
 ```{r}
 #Try LDA
-lda.fit=lda(Survived~Sex + Age + Pclass + SibSp + Parch + Fare,data=train.set)
+lda.fit=lda(Survived~Sex + Age + Pclass + SibSp + Parch + Fare, data=train, na.action = na.omit)
 lda.pred=predict(lda.fit, test.set)
 lda.class=lda.pred$class
-table(lda.class ,train.set$Survived)
 mean(lda.class==test.set$Survived)
+table(lda.class ,validation.set)
 #We can also apply a 50% threshold to the data
 sum(lda.pred$posterior[,1]>=.5)
 sum(lda.pred$posterior[,1]<.5)
