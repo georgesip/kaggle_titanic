@@ -128,6 +128,9 @@ lda.class=lda.pred$class
 mean(lda.class==validation.set, na.rm = T)
 table(lda.class ,validation.set)
 ```
+Using LDA with all the variables results in an accuracy of 78.77%
+
+
 
 ```{r, warning=FALSE}
 #Try LDA
@@ -137,14 +140,25 @@ lda.class2=lda.pred2$class
 mean(lda.class2==validation.set, na.rm = T)
 table(lda.class2 ,validation.set)
 ```
+Removing Parch and Fare using LDA results in an accuracy of 80.38%
 
-```{r}
+
+
+
+```{r, warning=FALSE}
 #testing QDA
-qda.fit=qda(Survived~Sex + Age + Pclass, data=train.set, na.action = na.omit)
+qda.fit=qda(Survived~Sex + Age + Pclass + SibSp + Fare, data=train.set, na.action = na.omit)
 qda.pred=predict(qda.fit, test.set)
 qda.class=qda.pred$class
 mean(qda.class==validation.set, na.rm = T)
 table(qda.class ,validation.set)
+```
+Using QDA with the aforementioned model alongside Fare increases our accuracy to 80.7%
+
+
+
+```{r}
+
 ```
 
 
