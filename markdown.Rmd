@@ -122,7 +122,7 @@ test[,factors] <- lapply(test[,factors], factor)
 
 ```{r, warning=FALSE}
 #Try LDA
-lda.fit=lda(Survived~Sex + Age + Pclass + SibSp + Parch + Fare, data=train, na.action = na.omit)
+lda.fit=lda(Survived~Sex + Age + Pclass + SibSp + Parch + Fare, data=train.set, na.action = na.omit)
 lda.pred=predict(lda.fit, test.set)
 lda.class=lda.pred$class
 mean(lda.class==validation.set, na.rm = T)
@@ -131,11 +131,20 @@ table(lda.class ,validation.set)
 
 ```{r}
 #Try LDA
-lda.fit2=lda(Survived~Sex + Age + Pclass, data=train, na.action = na.omit)
+lda.fit2=lda(Survived~Sex + Age + Pclass, data=train.set, na.action = na.omit)
 lda.pred2=predict(lda.fit2, test.set)
 lda.class2=lda.pred$class
 mean(lda.class2==validation.set, na.rm = T)
 table(lda.class2 ,validation.set)
+```
+
+```{r}
+#testing QDA
+qda.fit=qda(Survived~Sex + Age + Pclass, data=train.set, na.action = na.omit)
+qda.pred=predict(qda.fit, test.set)
+qda.class=qda.pred$class
+mean(qda.class==validation.set, na.rm = T)
+table(qda.class ,validation.set)
 ```
 
 
