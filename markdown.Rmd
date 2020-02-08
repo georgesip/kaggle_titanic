@@ -138,9 +138,9 @@ mean(lda.class2==validation.set, na.rm = T)
 table(lda.class2 ,validation.set)
 ```
 
-```{r}
+```{r, warning=FALSE}
 #testing QDA
-qda.fit=qda(Survived~Sex + Age + Pclass, data=train.set, na.action = na.omit)
+qda.fit=qda(Survived~Sex + Age + Pclass + SibSp + Fare, data=train.set, na.action = na.omit)
 qda.pred=predict(qda.fit, test.set)
 qda.class=qda.pred$class
 mean(qda.class==validation.set, na.rm = T)
