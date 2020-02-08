@@ -131,14 +131,14 @@ table(lda.class ,validation.set)
 
 ```{r, warning=FALSE}
 #Try LDA
-lda.fit2=lda(Survived~Sex + Age + Pclass, data=train.set, na.action = na.omit)
+lda.fit2=lda(Survived~Sex + Age + Pclass + SibSp, data=train.set, na.action = na.omit)
 lda.pred2=predict(lda.fit2, test.set)
 lda.class2=lda.pred2$class
 mean(lda.class2==validation.set, na.rm = T)
 table(lda.class2 ,validation.set)
 ```
 
-```{r, warning = FALSE}
+```{r}
 #testing QDA
 qda.fit=qda(Survived~Sex + Age + Pclass, data=train.set, na.action = na.omit)
 qda.pred=predict(qda.fit, test.set)
