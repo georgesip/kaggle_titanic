@@ -125,8 +125,12 @@ test[,factors] <- lapply(test[,factors], factor)
 lda.fit=lda(Survived~Sex + Age + Pclass + SibSp + Parch + Fare, data=train, na.action = na.omit)
 lda.pred=predict(lda.fit, test.set)
 lda.class=lda.pred$class
+<<<<<<< HEAD
 mean(lda.class==validation.set, na.rm = T)
+=======
+>>>>>>> 401a3d025f0f2f90470bb21edb9cc4a2b9f539ff
 table(lda.class ,validation.set)
+mean(lda.class==validation.set)
 #We can also apply a 50% threshold to the data
 sum(lda.pred$posterior[,1]>=.5)
 sum(lda.pred$posterior[,1]<.5)
