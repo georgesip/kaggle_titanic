@@ -33,6 +33,8 @@ library(class)
 library(gridExtra)
 library(caTools)
 library(boot)
+library(caret)
+library(e1071)
 ```
 
 
@@ -99,12 +101,20 @@ hist(Age[Survived == 1], add=TRUE, density = 25, col = 3, angle = 0)
 ```
 
 
+```{r}
+#Subset the train set
+set.seed(1)
+train.set = train[1:49,]
+test.set = test[491:891,]
+```
+
 
 ```{r}
 #Clean test set as well and add a Survived column 
 factors <- c("Pclass", "Sex", "Embarked")
 test[,factors] <- lapply(test[,factors], factor)
 ```
+
 
 
 
