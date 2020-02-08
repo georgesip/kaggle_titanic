@@ -142,12 +142,7 @@ table(lda.class2 ,validation.set)
 ```
 Removing Parch and Fare using LDA results in an accuracy of 80.38%
 
-<<<<<<< HEAD
-=======
 
-
-
->>>>>>> c160f4ab36d9728ea8038bed041ef91c00cb5ccc
 ```{r, warning=FALSE}
 #testing QDA
 qda.fit=qda(Survived~Sex + Age + Pclass + SibSp + Fare, data=train.set, na.action = na.omit)
@@ -164,9 +159,33 @@ Using QDA with the aforementioned model alongside Fare increases our accuracy to
 #Try kNN model
 train.knn = cbind(Sex,Age,Pclass,SibSp,Parch,Fare)[train.vector, ]
 test.knn = cbind(Sex,Age,Pclass,SibSp,Parch,Fare)[-train.vector, ]
+train.knn.na = c()
+for(i in 1:nrow(train.knn)){
+  if(anyNA(train.knn[i,])){
+    train.knn.na <- c(train.knn.na,T)
+  }
+  else{
+    train.knn.na <- c(train.knn.na,F)
+  }
+}
+train.knn.rm = na.omit(train.knn)
+train.knn.rm <- as.data.frame(train.knn.rm)
+test.knn.rm = na.omit(test.knn)
+test.knn.rm <- as.data.frame(test.knn.rm)
+
+
+train.set.rm = na.omit(train.set)
+test.set.rm = na.omit(test.set)
+class.set = train.set.rm$Survived
+validation.set.rm <- validation.set[!train.knn.na]
+train.set.rm[,factors] <- as.integer(train.set.rm[,factors])
+test.set.rm <- as.integer(test.set.rm)
+length(train.knn.rm)
+length(validation.set.rm)
+
 set.seed(1)
 # KNN(1)
-knn.pred = knn(train.set, test.set, k = 3)
+knn.pred = knn(train.set.rm, test.set.rm, class.set, k = 3)
 mean(knn.pred == validation.set)
 ```
 
