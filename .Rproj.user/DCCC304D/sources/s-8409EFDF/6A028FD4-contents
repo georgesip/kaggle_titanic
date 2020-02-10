@@ -1,0 +1,292 @@
+---
+title: "Econ187 Homework1"
+author: "Georges Ip"
+date: "1/14/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+Import libraries
+```{r message=FALSE}
+library(tidyverse)
+library("fImport")
+library(fOptions)
+library(nlstools) 
+library(tseries) 
+library(Quandl)
+library(zoo) 
+library(PerformanceAnalytics) 
+library(quantmod) 
+library(car)
+library(FinTS) 
+library(fOptions) 
+library(forecast) 
+require(stats)
+library(vars)
+library(tseries, quietly = T) 
+library(forecast, quietly = T) 
+library(XML)
+library(fBasics) 
+library(timsac) 
+library(TTR) 
+library(lattice) 
+library(foreign) 
+library(MASS) 
+require(stats4) 
+library(KernSmooth) 
+library(fastICA) 
+library(cluster) 
+library(leaps) 
+library(mgcv) 
+library(rpart) 
+require("datasets") 
+require(graphics) 
+library(RColorBrewer) 
+library(dynlm)
+library(ggcorrplot)
+library(olsrr)
+library(readxl)
+```
+
+Importing data and cleaning
+```{r}
+data <- read_excel("~/Desktop/UCLA/Winter20/Econ187/Homework1/Worldhappiness_Data.xlsx")
+#remove spaces from variables names
+names(data)<-str_replace_all(names(data), c(" " = "." , "," = "" ))
+```
+
+**1. Provide a descriptive analysis of your variables. This should include histograms and fitted distributions, correlation plot, boxplots, scatterplots, and statistical summaries (e.g., the five-number summary). All figures must include comments.**
+
+##Overall descriptive statistics
+```{r, tidy=TRUE}
+#Five number summary
+summary(data)
+#Correlation plot
+temp1 <- subset(data, select = -c(Country.name, Year))
+corr <- round(cor(temp1), 1)
+ggcorrplot(corr, tl.cex = 7)
+```
+
+From the correlation plot, we can immediately identify the variables which are correlated with Life.Ladder, namely: Social.support and Freedom.to.make.life.choices. The SD and SD/mean of ladder are just permutations of the response variables. Hence, we ignore those two predictors and look at diagnostic statistics for the Social.support and Freedom.to.make.life.choices
+
+## Histograms for selected variables
+```{r}
+#Histogram and Fitted Distribution for Happiness score
+ggplot(data, aes(x=Life.Ladder))+ 
+  geom_histogram(aes(y=..density..), binwidth = 0.1 , fill = "blue", alpha = 0.7) +
+  geom_density(alpha=0.2)
+```
+The histogram and fitted distribution for Happiness shows that the highest frequency counts occur around 5.3 to 5.9. The right tail of the distribution is also thicker than the left taik, indicating skewness.    
+
+```{r}
+#Histogram and Fitted Distribution for Social Support
+ggplot(data, aes(x=Social.support))+ 
+  geom_histogram(aes(y=..density..), binwidth = 0.01 , fill = "blue", alpha = 0.7) +
+  geom_density(alpha=0.2)
+```
+The histogram and fitted distribution for Happiness shows that social score is significantly left skewed.   
+
+
+```{r}
+#Histogram and Fitted Distribution for Freedom to make life choices
+ggplot(data, aes(x=Freedom.to.make.life.choices))+ 
+  geom_histogram(aes(y=..density..), binwidth = 0.01 , fill = "blue", alpha = 0.7) +
+  geom_density(alpha=0.2)
+```
+The histogram and fitted distribution for Happiness shows that freedom to make life choices is also significantly left skewed.
+
+## Boxplots for selected variables and countries
+```{r}
+#Boxplots
+ggplot(data, aes(x=Life.Ladder, y=Social.support)) + 
+  geom_boxplot(outlier.colour="red", outlier.shape=8,
+                outlier.size=4)
+```
+    
+In this case, boxplots are not informative as all of our variables are continuous. If there were factors variables, such as regions where the countries belonged to, we could than create more informative boxplots that tell us about the mean, median and IQR for each variable.
+
+##Scatterplots
+```{r}
+#Scatterplots
+ggplot(data, aes(x=Social.support, y=Life.Ladder)) + 
+  theme(text = element_text(size=10),
+        axis.text.x = element_text(angle=0, hjust=1))+
+  geom_point()+
+  geom_smooth(method=lm)+
+  labs(title = "Scatter plot of social support against happiness")
+```
+The scatter plot and fitted line shows that there is a general positive linear correlation which is logical. However, it appears that a non-linear fit may be better suited for social support.   
+
+
+```{r}
+ggplot(data, aes(x=Freedom.to.make.life.choices, y=Life.Ladder)) + 
+  theme(text = element_text(size=10),
+        axis.text.x = element_text(angle=0, hjust=1))+
+  geom_point()+
+  geom_smooth(method=lm)+
+  labs(title = "Scatter plot of freedom against happiness")
+```
+The scatter plot and fitted line shows that there is a general positive linear correlation which is logical. The linear regression line seems like a good fit.   
+
+
+
+** 2. Estimate a multiple linear regression model that includes all the main effects only (i.e., no interactions nor higher order terms). We will use this model as a baseline. Comment on **
+**the statistical and economic significance of your estimates. Also, make sure to provide an**
+**interpretation of your estimates.**
+
+
+```{r}
+#Remove the predictors which are permutations of life.ladder
+badvars <- names(data) %in% c("Standard.deviation.of.ladder.by.country-year", "Standard.deviation/Mean.of.ladder.by.country-year")
+newdata <- data[!badvars]
+#Creating a multiple regression model 
+fit <- lm(Life.Ladder ~ Log.GDP.per.capita+Social.support+Healthy.life.expectancy.at.birth+Freedom.to.make.life.choices+Generosity+Perceptions.of.corruption+Positive.affect+Negative.affect+Confidence.in.national.government+newdata$`GINI.index.(World.Bank.estimate).average.2000-16` +newdata$`gini.of.household.income.reported.in.Gallup.by.wp5-year`, data=newdata)
+summary(fit) 
+```
+
+We see that not all of the predictors are statistically significant. We will focus on the predictors that are statistically significant: Log.GDP.per.capita, Social.support, Perceptions.of.corruption,Positive.affect,Negative.affect, Confidence.in.national.government and GINI.index.(World.Bank.estimate).average.2000-16. 
+
+For Log.GDP.per.capita, we see a positive coefficient. This implies that holding all other predictors constant, we estimate a positive effect on Life.Ladder for an increase in Log.GDP.per.capita. This makes economics sense as an increase in GDP per capita is usually a good indicator for standard of living.
+
+For Social.support, we see a positive coefficient. This implies that holding all other predictors constant, we estimate a positive effect on Life.Ladder for an increase in Social.support. This makes logical sense as a more robust support network would generally result in greater happiness.
+
+For GINI.index.(World.Bank.estimate).average.2000-16, we see a negative coefficient. This implies that holding all other predictors constant, we estimate a negative effect on Life.Ladder for an increase in GINI.index.(World.Bank.estimate).average.2000-16 This makes economic sense as a government which does not abuse its power is generally correlated with a happier populace.
+
+For Positive.affect , we see a positive coefficient. This implies that holding all other predictors constant, we estimate a positive effect on Life.Ladder for an increase in Positive.affect. This makes economic sense as a positive affect is a proxy indicator for the previous day positive mood, which essentially functions as proxy lagged values for happiness.
+
+For Negative.affect , we see a postive coefficient. This implies that holding all other predictors constant, we estimate a positive effect on Life.Ladder for an increase in Negative.affect. This is surprising as we expect there to be a negative relationship. Negative.affect measures the previous day average of anger, worry and sadness, of which we would expect to be negatively correlated with happiness. This suggests that we might be missing some interaction terms.
+
+For Confidence.in.national.government, we see a negative coefficient. This implies that holding all other predictors constant, we estimate a negative effect on Life.Ladder for an increase in Positive.affect. This is also surprising, as we would expect that greater confidence in the government would result in greater happiness. 
+
+For Confidence.in.national.government, we see a negative coefficient. This implies that holding all other predictors constant, we estimate a negative effect on Life.Ladder for an increase in Positive.affect. This makes economic sense as a higher gini coefficient implies greater inequality, resulting in more unhappiness. 
+
+**3. Identify if there are any outliers, high leverage, and or influential observations worth removing.**
+**If so, remove them but justify your reason for doing so and re-estimate your model.**
+
+```{r}
+prelim.fit <- lm(Life.Ladder ~ Log.GDP.per.capita + Social.support+ Perceptions.of.corruption+Positive.affect+Negative.affect+ Confidence.in.national.government + newdata$`GINI.index.(World.Bank.estimate).average.2000-16`, data=newdata)
+summary(prelim.fit)
+influenceIndexPlot(prelim.fit, id=TRUE,vars="hat")
+```
+    
+    
+
+The influence index plot identifies 2 observations as outliers, observation 15 and 103. This corresponds to Botswana and Rwanda.
+
+```{r}
+#We now try another plot based on Cook's distance
+cooksd <- cooks.distance(prelim.fit)
+plot(cooksd, pch="*", cex=1, main="Outliers by Cooks distance")
+abline(h = 4/nrow(newdata), col="red") #cutoff
+text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>4/nrow(newdata), names(cooksd),""), col="red")
+```
+    
+    
+We see that this plot confirms observations 15 and 103 as outliers. Furthermore, it also identifies observations 12, 53, 103. There are a few outliers near the cutoff line but we will not omit them for now as they are not as extreme as 12,15,53 and 103. 
+
+```{r}
+#We now remove the outliers 12,15,53 and 103 and reestimate the model. 
+screen.data = newdata[-c(12,15,53,103),]
+improved.fit <- lm(Life.Ladder ~ Log.GDP.per.capita + Social.support+ Perceptions.of.corruption+Positive.affect+Negative.affect+ Confidence.in.national.government + screen.data$`GINI.index.(World.Bank.estimate).average.2000-16`, data=screen.data)
+summary(improved.fit)
+
+screen.data2 = newdata[-c(15,103),]
+improved.fit2 <- lm(Life.Ladder ~ Log.GDP.per.capita + Social.support+ Perceptions.of.corruption+Positive.affect+Negative.affect+ Confidence.in.national.government + screen.data2$`GINI.index.(World.Bank.estimate).average.2000-16`, data=screen.data2)
+summary(improved.fit2)
+```
+
+Compared to before, our improved model now has a higher adjust R-squared and F-statistic, indicating that removing the outliers has improved the fit. Furthermore, removing more of the outliers, instead of just observations 15 and 103, resulted in a higher adjusted R-squared and F-statistic. If we only remove observations 15 and 103, we also see that the p-value for our predictors becomes less statistically significant. hence, we stick with improved.fit for now.
+
+**4. Use Mallows Cp for identifying which terms you will keep in the model (based on part 3 )**
+**and also test for multicollinearity using VIF. Estimate a new regression model based on these**
+**findings.**
+
+```{r}
+ols_step_best_subset(improved.fit)
+vif(improved.fit)
+```
+Based on the Mallows Cp criterion, we look at model 5, as the Mallows Cp value is closest to k+1 aside from the original model. Model 5 does not include the confidence in government and gini coefficient predictors.
+
+Looking at the VIF we note that GDP per capita and social sup[port have the highest variance inflation factors, however, the values are still relatively low, indicating that multicollinearity is not likely to be a problem. 
+
+We make the decision based on SBC, Schwarz Bayesian Criteria, and model 7 has the lowest SBC. Hence, we choose the full model as our final model. We choose SBC as the metric instead of AIC to account for the fact that model 7 has more terms than model 5 and we want to penalize model complexity. 
+
+**5. For your model in part (4) plot the respective residuals vs. ŷ and comment on your results**
+```{r}
+model.resid = resid(improved.fit)
+plot(improved.fit$fitted.values, model.resid, pch=20,ylab="Resdiduals", xlab="y_hat")
+abline(h=0,col="red", lwd=2)
+```
+
+From the plot, we see that variance is not constant. For higher fitted values, the variance seems to decrease. There may be some non-linear or interaction terms that we are excluding.
+
+**6. For your model in part (4) perform a RESET test and comment on your results**
+
+```{r}
+#Try quadratic
+resettest(improved.fit, power=2, type="regressor")
+```
+According to the rest, we fail to reject the null that there are higher order terms that we should include. This suggests that the model is currently a good fit.  
+
+**7. For your model in part (4) test for heteroskedasticity and comment on your results**
+```{r}
+#Non-constant variance test
+ncvTest(improved.fit)
+#From this test, we fail to reject the null that variance is constant
+
+#Use the studentized bp test
+bptest(improved.fit)
+#From this test, we fail to reject the null that variance is constant
+```
+
+We conclude that there iis no heteroskedasticity and the variance is largely constant. 
+
+**8. Estimate a model based on all your findings that also includes interaction terms (if appropriate) and if needed, any higher power terms. Comment on the performance of this model
+compared to your other models. Make sure to use AIC and BIC for model comparison**
+```{r}
+#We first try a model that removes the variables that are of lower statistical significant, 
+#namely confidence in government and gini coefficient. 
+improved.fit3 <- lm(Life.Ladder ~ Log.GDP.per.capita + Social.support+ Perceptions.of.corruption+Positive.affect+Negative.affect, data=screen.data)
+summary(improved.fit3)
+#From our original scatter plots, we suggested that a quadratic fit for social support might be better.
+improved.fit4 <- lm(Life.Ladder ~ Log.GDP.per.capita + I(Social.support^2) + Perceptions.of.corruption+Positive.affect+Negative.affect, data=screen.data)
+summary(improved.fit4)
+#We now compare the model metrics
+#Starting with AIC
+comparisontable <- matrix(c(AIC(fit), AIC(improved.fit), AIC(improved.fit2), AIC(improved.fit3), AIC(improved.fit4),BIC(fit), BIC(improved.fit), BIC(improved.fit2), BIC(improved.fit3), BIC(improved.fit4)),ncol = 5, byrow = TRUE)
+colnames(comparisontable) <- c('fit', 'improved.fit', 'improved.fit2', 'improved.fit3', 'improved.fit4')
+rownames(comparisontable) <- c('AIC values:', 'BIC values:')
+comparisontable
+```
+
+Based on both AIC and BIC, it is clear that our primary model, improve.fit, is the best performing as it has the lowest AIC and BIC values. 
+
+**9. Finally, estimate the model from part (8) for the 2016 and 2017 datasets and comment on **
+**your findings.**
+
+```{r}
+data2016 <- read_excel("~/Desktop/UCLA/Winter20/Econ187/Homework1/Worldhappiness_Data2016.xlsx")
+data2017 <- read_excel("~/Desktop/UCLA/Winter20/Econ187/Homework1/Worldhappiness_Data2017.xlsx")
+#cleaning data
+#remove spaces from variables names
+names(data2016)<-str_replace_all(names(data2016), c(" " = "." , "," = "" ))
+names(data2017)<-str_replace_all(names(data2017), c(" " = "." , "," = "" ))
+#Implement our model
+improved.fit.2016 <- lm(Life.Ladder ~ Log.GDP.per.capita + Social.support+ Perceptions.of.corruption+Positive.affect+Negative.affect+ Confidence.in.national.government, data=data2016)
+#note that 2016 data does not include gini coefficient variable
+improved.fit.2017 <-lm(Life.Ladder ~ Log.GDP.per.capita + Social.support+ Perceptions.of.corruption+Positive.affect+Negative.affect+ Confidence.in.national.government + data2017$`GINI.index.(World.Bank.estimate).average.2000-13`, data=data2017)
+
+summary(improved.fit.2016)
+summary(improved.fit.2017)
+```
+Looking at the summaries from the 2016 model, adjusted R-squared has stayed roughly the same compared the model from 2018. However, in 2016, we see that confidence in national government is no longer a significant variable, which could mean that it was not relevant then. Furthermore, the omission of the gini coefficient variable would have also changed the significance of the remaining variables.
+
+In 2017, we see that negative affect is longer significant, furthermore, the adjusted R-squared has also decreased compared to the 2018 model. 
+
+**10. Provide a short (1 paragraph) summary of your overall conclusions/findings.**
+
+A large part of applied econometrics is centered around constructing models from past data in the hopes of predicting future values. However, from this exercise, it is evident that it is difficult to establish a one-size-fits-all model using a linear regression. Although we have created a model that seems to work well for 2018, it evidently does not work as well when we apply it to previous or future years. There are a few ways to ameliorate this. We can try using time series data instead. This would enable us to construct a model that we can train based on past observations, in order to more accurately forecast the value at time t+1. Aside from a linear regression, there is also a variety of methods that could be more flexible, such as regression splines, VARs, or even non-parametric methods. 

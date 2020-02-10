@@ -1,0 +1,342 @@
+---
+title: "Project1"
+author: "Georges Ip"
+date: "2/2/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Import libraries
+```{r message=FALSE}
+library(tidyverse)
+library(tseries) 
+library(car)
+library(forecast) 
+require(stats)
+library(vars)
+library(MASS) 
+require(stats4) 
+require("datasets") 
+require(graphics) 
+library(RColorBrewer) 
+library(dynlm)
+library(ggcorrplot)
+library(olsrr)
+library(readxl)
+library(ISLR)
+library(dplyr)
+library(tidyverse)
+library(class)
+library(gridExtra)
+library(caTools)
+library(boot)
+library(caret)
+library(e1071)
+```
+
+
+Import datasets
+```{r}
+train <- read_csv("train.csv")
+test <- read_csv("test.csv")
+```
+
+Explore dataset
+```{r}
+attach(train)
+head(train)
+colSums(is.na(train))
+```
+
+
+
+There are quite a few missing observations in Age and Cabin, as well as 2 observations in Embarked. Some of the indicator variables are also classified as num. 
+
+```{r}
+#First, deal with the factor variables
+factors <- c("Survived", "Pclass", "Sex", "Embarked")
+train[,factors] <- lapply(train[,factors], factor)
+```
+
+
+
+Now we have convertd to factor variables, we can conduct some preliminary descriptive analysis. A correlation plot will be more difficult to interpret as we have a few factor variables. 
+```{r}
+#First look at Passenger Class
+table1 <- table(Pclass,Survived)
+ftable(round(prop.table(table1), 3))
+```
+
+
+
+From this table, we can see that there is quite a clear relationship between survival and Pclass, with a higher proportion of survivors in better passenger classes. 
+```{r}
+#Now look at Sex
+table2 <- table(Sex, Survived)
+ftable(table2)
+```
+
+
+
+It is evident that a higher proportion of females survived compared to males
+
+```{r}
+#Look at the combined table
+table3 <- table(Pclass, Sex, Survived)
+ftable(table3)
+```
+
+
+This table is slightly more diifficult to interpret, but ones notable takeaway is that both trends we identified within Pclass and Sex still hold. This could be variables used in classification. We now turn our attention to numerical variables.
+
+
+
+```{r}
+#Add a histogram to see if ages affects survival
+hist(Age[Survived == 0], density = 50, col = 2, angle = 0)
+hist(Age[Survived == 1], add=TRUE, density = 25, col = 3, angle = 0)
+```
+
+
+```{r}
+#Subset the train set
+set.seed(1)
+train.vector = sample(1:891,500)
+train.set = train[train.vector,]
+test.set = train[-train.vector,]
+#validation
+validation.set = train$Survived[-train.vector]
+```
+
+
+```{r}
+#Clean test set as well and add a Survived column 
+factors <- c("Pclass", "Sex", "Embarked")
+test[,factors] <- lapply(test[,factors], factor)
+```
+
+
+
+```{r, warning=FALSE}
+#Try LDA
+lda.fit=lda(Survived~Sex + Age + Pclass + SibSp + Parch + Fare, data=train.set, na.action = na.omit)
+lda.pred=predict(lda.fit, test.set)
+lda.class=lda.pred$class
+mean(lda.class==validation.set, na.rm = T)
+table(lda.class ,validation.set)
+```
+Using LDA with all the variables results in an accuracy of 78.77%
+
+
+
+```{r, warning=FALSE}
+#Try LDA
+lda.fit2=lda(Survived~Sex + Age + Pclass + SibSp, data=train.set, na.action = na.omit)
+lda.pred2=predict(lda.fit2, test.set)
+lda.class2=lda.pred2$class
+mean(lda.class2==validation.set, na.rm = T)
+table(lda.class2 ,validation.set)
+```
+Removing Parch and Fare using LDA results in an accuracy of 80.38%
+
+
+```{r, warning=FALSE}
+#testing QDA
+qda.fit=qda(Survived~Sex + Age + Pclass + SibSp + Fare, data=train.set, na.action = na.omit)
+qda.pred=predict(qda.fit, test.set)
+qda.class=qda.pred$class
+mean(qda.class==validation.set, na.rm = T)
+table(qda.class ,validation.set)
+```
+Using QDA with the aforementioned model alongside Fare increases our accuracy to 80.7%
+
+
+
+```{r}
+#For the kNN model, we have to recode our factor variables as dummy variables with integer levels
+#factors are "Survived", "Pclass", "Sex", "Embarked"
+train.set.knn <- train.set
+train.set.knn$Survived <- as.numeric(as.character(train.set$Survived))
+train.set.knn$Pclass <- as.numeric(as.character(train.set$Pclass))
+train.set.knn$Sex <- as.numeric(train.set$Sex)
+train.set.knn$Embarked <- as.numeric(train.set$Embarked)
+#remove missing values
+train.set.knn <- na.omit(train.set.knn)
+#remove non-numeric variables
+train.set.knn <- subset(train.set.knn, select = -c(Name, Ticket, Cabin))
+#do for test set
+test.set.knn <- test.set
+test.set.knn$Survived <- as.numeric(as.character(test.set$Survived))
+test.set.knn$Pclass <- as.numeric(as.character(test.set$Pclass))
+test.set.knn$Sex <- as.numeric(test.set$Sex)
+test.set.knn$Embarked <- as.numeric(test.set$Embarked)
+#remove missing values
+test.set.knn <- na.omit(test.set.knn)
+#remove non-numeric variables
+test.set.knn <- subset(test.set.knn, select = -c(Name, Ticket, Cabin))
+#construct prediction vector
+train.prediction.set <- train.set.knn$Survived
+test.prediction.set <- test.set.knn$Survived
+```
+
+```{r}
+#Try kNN model again
+set.seed(123)
+#try k = 1
+knn.pred.1 = knn(train.set.knn, test.set.knn, train.prediction.set, k = 1)
+mean(test.prediction.set != knn.pred.1)
+table(knn.pred.1,test.prediction.set)
+#try k = 3
+knn.pred.3 = knn(train.set.knn, test.set.knn, train.prediction.set, k = 3)
+mean(test.prediction.set != knn.pred.3)
+table(knn.pred.3,test.prediction.set)
+```
+
+
+```{r}
+#Try kNN model
+
+
+
+
+
+train.knn = cbind(Sex,Age,Pclass,SibSp,Parch,Fare)[train.vector, ]
+test.knn = cbind(Sex,Age,Pclass,SibSp,Parch,Fare)[-train.vector, ]
+train.knn.na = c()
+for(i in 1:nrow(train.knn)){
+  if(anyNA(train.knn[i,])){
+    train.knn.na <- c(train.knn.na,T)
+  }
+  else{
+    train.knn.na <- c(train.knn.na,F)
+  }
+}
+train.knn.rm = na.omit(train.knn)
+train.knn.rm <- as.data.frame(train.knn.rm)
+test.knn.rm = na.omit(test.knn)
+test.knn.rm <- as.data.frame(test.knn.rm)
+
+
+train.set.rm = na.omit(train.set)
+test.set.rm = na.omit(test.set)
+class.set = train.set.rm$Survived
+validation.set.rm <- validation.set[!train.knn.na]
+train.set.rm[,factors] <- as.integer(train.set.rm[,factors])
+test.set.rm <- as.integer(test.set.rm)
+length(train.knn.rm)
+length(validation.set.rm)
+
+set.seed(1)
+# KNN(1)
+knn.pred = knn(train.set.rm, test.set.rm, class.set, k = 3)
+mean(knn.pred == validation.set)
+```
+
+
+```{r}
+mean(train$Survived)
+```
+
+
+```{r}
+train$Sex01 <- train$Sex == "female"
+test$Sex01 <- test$Sex == "female"
+```
+
+
+
+
+
+```{r}
+glm1 <- glm(Survived ~ Pclass + Sex01 + Age + SibSp + Parch + Fare, data = train, family = "binomial")
+glm1
+```
+
+```{r}
+influenceIndexPlot(glm1, vars="Cook")
+```
+
+```{r}
+resettest(glm1, power=2)
+```
+
+```{r}
+glm2 <- glm(Survived ~ Pclass + Sex01 + Age + I(Age^2) + SibSp + Parch + Fare, data = train, family = "binomial")
+glm2
+```
+
+
+```{r}
+resettest(glm2, power = 2)
+```
+
+```{r}
+library(leaps)
+```
+
+
+
+```{r}
+ss <- regsubsets(Survived ~ Pclass + Sex01 + Age + I(Age^2) + SibSp + Parch + Fare, data = train, method = "exhaustive", nbest = 2)
+subsets(ss,statistic="cp",legend=F, ylim = c(0,20))
+
+```
+```{r}
+glm3 <- glm(Survived ~ Pclass + Sex01 + Age + I(Age^2) + SibSp, data = train, family = "binomial")
+glm3
+```
+
+```{r}
+AIC(glm1,glm2,glm3)
+```
+
+
+
+
+
+```{r warning=FALSE}
+lda1 <- lda(Survived ~ Pclass + Sex01 + Age + SibSp + Parch + Fare, data = train, na.action = na.exclude)
+
+lda1pred <- predict(lda1, train, type = "response", na.action = na.exclude)
+
+mean(lda1pred$class == train$Survived, na.rm = T)
+```
+
+```{r warning=FALSE}
+lda2 <- lda(Survived ~ Pclass + Sex01 + Age + I(Age^2) + SibSp, data = train, na.action = na.exclude)
+
+lda2pred <- predict(lda2, train, type = "response", na.action = na.exclude)
+
+mean(lda2pred$class == train$Survived, na.rm = T)
+```
+
+
+```{r warning=FALSE}
+qda1 <- qda(Survived ~ Pclass + Sex01 + Age + SibSp + Parch + Fare, data = train, na.action = na.exclude)
+
+qda1pred <- predict(qda1, train, type = "response", na.action = na.exclude)
+
+mean(qda1pred$class == train$Survived, na.rm = T)
+```
+
+```{r warning=FALSE}
+qda2 <- qda(Survived ~ Pclass + Sex01 + Age + I(Age^2) + SibSp , data = train, na.action = na.exclude)
+
+qda2pred <- predict(qda2, train, type = "response", na.action = na.exclude)
+
+mean(qda2pred$class == train$Survived, na.rm = T)
+```
+
+```{r}
+library(lava)
+```
+
+
+```{r}
+cv.err <- cv.glm(train, glm3)
+cv.err$delta
+```
+

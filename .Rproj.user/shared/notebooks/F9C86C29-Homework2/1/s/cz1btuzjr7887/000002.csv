@@ -1,0 +1,5 @@
+"0","#We convert it to a time series to see the movement of the return"
+"0","#47 weeks in 1990"
+"0","values = seq(from = as.Date(""2017-01-01""), to = as.Date(""2017-01-03""), by = 'day')"
+"0","Today.ts <- ts(Weekly$Today, start = c(1990,4), frequency = 52)"
+"0","ts.plot(Today.ts)"

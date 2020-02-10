@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1581119043694.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "A10F53C0",
+    "lastKnownWriteTime" : 1580964893,
+    "last_content_update" : 1581119666330,
+    "path" : "~/Desktop/UCLA/Winter20/Econ187/Homework2.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "367,0",
+        "last_setup_crc32" : "",
+        "scrollLine" : "358"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

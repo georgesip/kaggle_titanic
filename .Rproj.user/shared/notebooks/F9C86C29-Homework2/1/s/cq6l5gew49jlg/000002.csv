@@ -1,0 +1,2 @@
+"0","#We look the response variable"
+"0","plot(Weekly$Direction, ylab = ""Count"", xlab = ""Direction"", col = c(""red3"",""royalblue""))"

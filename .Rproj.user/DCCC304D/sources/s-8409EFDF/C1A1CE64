@@ -1,0 +1,24 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1580707239809.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "C1A1CE64",
+    "lastKnownWriteTime" : 1581362235,
+    "last_content_update" : 1581362235019,
+    "path" : "~/Desktop/UCLA/Winter20/Econ187/Project1/kaggle_titanic/markdown.Rmd",
+    "project_path" : "markdown.Rmd",
+    "properties" : {
+        "cursorPosition" : "194,37",
+        "last_setup_crc32" : "8409EFDFbb338d19",
+        "scrollLine" : "186",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

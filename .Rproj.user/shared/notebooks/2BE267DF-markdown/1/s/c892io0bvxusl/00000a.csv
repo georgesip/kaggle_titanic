@@ -1,0 +1,23 @@
+"0","knn.pred.3 = knn(train.set.knn, test.set.knn, train.prediction.set, k = 3)
+mean(test.prediction.set != knn.pred.3)
+"
+"1","[1]"
+"1"," 0.3292683"
+"1","
+"
+"0","table(knn.pred.3,test.prediction.set)"
+"1","          test.prediction.set
+"
+"1","knn.pred.3"
+"1","  0"
+"1","  1"
+"1","
+         0"
+"1"," 10"
+"1"," 13"
+"1","
+         1"
+"1"," 14"
+"1"," 45"
+"1","
+"

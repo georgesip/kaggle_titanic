@@ -1,0 +1,560 @@
+---
+title: "Homework2"
+author: "Georges Ip"
+date: "1/23/2020"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Import libraries
+```{r message=FALSE}
+library(tidyverse)
+library(tseries) 
+library(car)
+library(forecast) 
+require(stats)
+library(vars)
+library(MASS) 
+require(stats4) 
+require("datasets") 
+require(graphics) 
+library(RColorBrewer) 
+library(dynlm)
+library(ggcorrplot)
+library(olsrr)
+library(readxl)
+library(ISLR)
+library(dplyr)
+library(tidyverse)
+library(class)
+library(gridExtra)
+library(caTools)
+library(boot)
+```
+
+*(a) Produce some numerical and graphical summaries of the Weekly data. Do there appear to be any patterns?*
+
+```{r}
+#We do a basic overview
+attach(Weekly)
+summary(Weekly)
+Weekly2 <- subset(Weekly, select = -c(Direction))
+ggplot(gather(Weekly2), aes(value)) + 
+    geom_histogram(bins = 10) + 
+    facet_wrap(~key, scales = 'free_x')
+```
+
+
+
+A plot of the histograms for our variables shows that the return is centered around zero and does not show any unusual skewness. On the other hand, volume is significantly right skewed, with more observations on the lower end.
+
+```{r}
+#We look at the response variable
+plot(Weekly$Direction, ylab = "Count", xlab = "Direction", col = c("red3","royalblue"))
+```
+
+
+
+This plot shows that the dataset contains more "Up" observations than "Down" observations. This might affect our results later when we calculate the prior probabilities.
+
+```{r}
+#We convert it to a time series to see the movement of the return
+#47 weeks in 1990
+values = seq(from = as.Date("2017-01-01"), to = as.Date("2017-01-03"), by = 'day')
+Today.ts <- ts(Weekly$Today, start = c(1990,4), frequency = 52)
+ts.plot(Today.ts)
+```
+
+
+
+From this time series plot, we see that the return is centered around 0. However, there are periods with volatility clustering, and non-constant variance, which suggests that the data might not satisfy the normality assumption. 
+
+
+*(b) Use the full data set to perform a logistic regression with Direction as the response and the five lag variables plus Volume as predictors. Use the summary function to print the results. Do any of the predictors appear to be statistically significant? If so, which ones?*
+
+```{r}
+glm.fit = glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume, data=Weekly, family = "binomial")
+summary(glm.fit)
+```
+
+
+
+Only lag2 has a sufficiently low p-value to be considered a predictor for direction. 
+
+*(c) Compute the confusion matrix and overall fraction of correct predictions. Explain what the confusion matrix is telling you about the types of mistakes made by logistic regression.*
+
+```{r}
+glm.prob = predict(glm.fit, type = "response")
+contrasts(Weekly$Direction) #Verify that 1 is Up
+length(glm.prob)
+glm.pred=rep("Down",1089)
+glm.pred[glm.prob >.5]="Up"
+table(glm.pred,Weekly$Direction) 
+mean(glm.pred==Weekly$Direction)
+```
+
+
+
+The confusion matrix tells us the proportion of false positives and false negatives that our model outputs. For instance, the false positives denote the cases when our model predicts up given that the true is down. We find that our logistic regression returns a correct prediction of the market 56.1% of the time. 
+
+*(d) Now fit the logistic regression model using a training data period from 1990 to 2008, with Lag2 as the only predictor. Compute the confusion matrix and the overall fraction of correct predictions for the held out data (that is, the data from 2009 and 2010).*
+```{r}
+train2=(Year<2009)
+train.2009 = Weekly[!train2,]
+dim(train.2009)
+Direction.2009=Direction[!train2]
+glm.train = glm(Direction~Lag2, data=Weekly, family = "binomial", subset = train2)
+glm.prob2 = predict(glm.train, train.2009, type = "response")
+glm.pred2=rep("Down",104)
+glm.pred2[glm.prob2 >.5]="Up"
+table(glm.pred2,Direction.2009)
+mean(glm.pred2==Direction.2009)
+```
+
+
+
+*(e) Repeat (d) using LDA.*
+```{r}
+lda.fit=lda(Direction~Lag2,data=Weekly, subset = train2)
+lda.fit
+```
+
+```{r}
+lda.pred=predict(lda.fit, train.2009)
+lda.class=lda.pred$class
+table(lda.class ,train.2009$Direction)
+mean(lda.class==train.2009$Direction)
+#We can also apply a 50% threshold to the data
+sum(lda.pred$posterior[,1]>=.5)
+sum(lda.pred$posterior[,1]<.5)
+```
+
+
+
+From the confusion matrix, the logistic regression and LDA output the same exact prediction. 
+
+*(f) Repeat (d) using QDA.*
+```{r}
+qda.fit=qda(Direction~Lag2,data=Weekly,subset=train2)
+qda.fit
+qda.class=predict(qda.fit,train.2009)$class
+table(qda.class ,Direction.2009)
+mean(qda.class==Direction.2009)
+```
+
+
+
+The confusion matrix shows that the model picked "Up" all the time, which surprisingly resulted in 58.65% accuracy. 
+
+*(g) Repeat (d) using KNN with K = 1.*
+```{r}
+train.X=cbind(Lag2)[train2,]
+test.X=cbind(Lag2)[!train2,]
+train.Direction =Direction[train2]
+set.seed (1)
+knn.pred=knn(data.frame(train.X),data.frame(test.X),train.Direction ,k=1)
+table(knn.pred,Direction.2009)
+mean(knn.pred==Direction.2009)
+```
+
+
+
+The results show that using kNN(1) results in only 50% accuracy. 
+
+*(h) Which of these methods appears to provide the best results on this data?*
+
+The logistic and LDA methods appear to provide the best results as they have the highest accuracy. 
+
+*(i) Experiment with different combinations of predictors, including possible transformations and interactions, for each of the methods. Report the variables, method, and associated confusion matrix that appears to provide the best results on the held out data. Note that you should also experiment with values for K in the KNN classifier.*
+
+```{r}
+#Start with logistic
+#We include Lag 1 as it had the next lowest p-value
+glm.train2 = glm(Direction~Lag1+Lag2+I(Lag2^2), data=Weekly, family = "binomial", subset = train2)
+glm.prob3 = predict(glm.train, train.2009, type = "response")
+glm.pred3=rep("Down",104)
+glm.pred3[glm.prob2 >.5]="Up"
+table(glm.pred3,Direction.2009)
+mean(glm.pred3==Direction.2009)
+```
+
+
+
+There is no improvement to the classification done by logistic regression when we include more predictors as well as add a quadratic term.
+
+```{r}
+#LDA
+lda.fit2=lda(Direction~Lag1+Lag2,data=Weekly, subset = train2)
+lda.pred2=predict(lda.fit, train.2009)
+lda.class2=lda.pred$class
+table(lda.class2 ,train.2009$Direction)
+mean(lda.class2==train.2009$Direction)
+#We can also apply a 50% threshold to the data
+sum(lda.pred$posterior[,1]>=.5)
+sum(lda.pred$posterior[,1]<.5)
+```
+
+
+
+Similar to the previous cases, there has been no change to the prediction accuracy of LDA when we include Lag1.
+
+```{r}
+qda.fit2=qda(Direction~Lag2+I(Lag2^2),data=Weekly,subset=train2)
+qda.class2=predict(qda.fit2,train.2009)$class
+table(qda.class2,Direction.2009)
+mean(qda.class2==Direction.2009)
+```
+
+
+
+We see that including the quadratic term to the QDA model results in the same level of accuracy as the LDA and logistic models. Nonetheless, this is still an improvement to the original QDA model.
+
+```{r}
+train.X2=cbind(Lag1,Lag2,Lag2^2)[train2,]
+test.X2=cbind(Lag1,Lag2,Lag2^2)[!train2,]
+train.Direction=Direction[train2]
+set.seed (1)
+knn.pred2=knn(data.frame(train.X2), data.frame(test.X2), train.Direction ,k=1)
+table(knn.pred,Direction.2009)
+mean(knn.pred==Direction.2009)
+```
+
+
+
+We see that including Lag1 and a quadratic Lag2 term does not improve the prediction acccuracy of the kNN(1) model.
+
+```{r}
+train.X3=cbind(Lag1,Lag2,Lag2^2)[train2,]
+test.X3=cbind(Lag1,Lag2,Lag2^2)[!train2,]
+train.Direction=Direction[train2]
+set.seed (1)
+knn.pred3=knn(data.frame(train.X3), data.frame(test.X3), train.Direction ,k=3)
+table(knn.pred,Direction.2009)
+mean(knn.pred==Direction.2009)
+```
+
+
+
+When we increase the number of nearest neighbours from 1 to 3, there is no change to the prediction accuracy of the kNN model.
+
+*11. In this problem, you will develop a model to predict whether a given car gets high or low gas mileage based on the Auto data set.*
+
+*(a) Create a binary variable, mpg01, that contains a 1 if mpg contains a value above its median, and a 0 if mpg contains a value below its median. You can compute the median using the median() function. Note you may find it helpful to use the data.frame() function to create a single data set containing both mpg01 and the other Auto variables.*
+
+```{r}
+#Compute the median mpg
+attach(Auto)
+median(mpg)
+Auto2 <- Auto %>% 
+  mutate(mpg01 = ifelse(mpg>22.75, 1, 
+  ifelse(mpg<22.75, 0, NA))
+)
+Auto2$mpg01 = as.factor(Auto2$mpg01)
+```
+
+*(b) Explore the data graphically in order to investigate the association between mpg01 and the other features. Which of the other features seem most likely to be useful in predicting mpg01? Scatterplots and boxplots may be useful tools to answer this question. Describe your findings.*
+
+```{r}
+plot1<-ggplot(Auto2, aes(x=mpg01,y=cylinders))+
+  geom_boxplot()
+plot2<-ggplot(Auto2, aes(x=mpg01,y=displacement))+
+  geom_boxplot()
+plot3<-ggplot(Auto2, aes(x=mpg01,y=horsepower))+
+  geom_boxplot()
+plot4<-ggplot(Auto2, aes(x=mpg01,y=weight))+
+  geom_boxplot()
+plot5<-ggplot(Auto2, aes(x=mpg01,y=acceleration))+
+  geom_boxplot()
+plot6<-ggplot(Auto2, aes(x=mpg01,y=year))+
+  geom_boxplot()
+grid.arrange(plot1,plot2,plot3,plot4,plot5,plot6)
+```
+
+
+
+From the boxplots, we can see the IQR for each variable against mpg01. Most of the plots are logical, for instance, the plot of mpg01 against year shows that in general, cars with mpg above the median are alter year models. This makes sense as newer cars are generally more efficient. One surprising observation is mpg01 against acceleration. We see that the median for cars with higher mpg than the median have faster acceleration. This is surprising as we would assume that more efficient cars are generally slower. 
+
+```{r}
+plot7<-ggplot(Auto2, aes(x=mpg01,y=cylinders))+
+  geom_point()
+plot8<-ggplot(Auto2, aes(x=mpg01,y=displacement))+
+  geom_point()
+plot9<-ggplot(Auto2, aes(x=mpg01,y=horsepower))+
+  geom_point()
+plot10<-ggplot(Auto2, aes(x=mpg01,y=weight))+
+  geom_point()
+plot11<-ggplot(Auto2, aes(x=mpg01,y=acceleration))+
+  geom_point()
+plot12<-ggplot(Auto2, aes(x=mpg01,y=year))+
+  geom_point()
+grid.arrange(plot7,plot8,plot9,plot10,plot11,plot12)
+```
+
+
+
+The scatter plot is harder to interpret given that mpg01 is a factor variable. 
+
+*(c) Split the data into a training set and a test set.*
+```{r}
+#We split the training data based on a 70:30 split
+train=Auto2[1:277,]
+test=Auto2[278:397,]
+```
+
+
+*(d) Perform LDA on the training data in order to predict mpg01 using the variables that seemed most associated with mpg01 in (b). What is the test error of the model obtained?*
+```{r}
+#LDA
+sample <- sample.int(n = nrow(Auto2), size = floor(.75*nrow(Auto2)), replace = F)
+train <- Auto2[sample, ]
+test  <- Auto2[-sample, ]
+mpg01.test = Auto2$mpg01[-sample]
+lda.fit=lda(mpg01~horsepower+acceleration+weight+year+displacement+cylinders,data=train)
+lda.pred=predict(lda.fit,test)
+lda.class=lda.pred$class
+table(lda.class,mpg01.test)
+mean(lda.class==mpg01.test)
+mean(lda.class!=mpg01.test)
+```
+
+
+
+
+Performing LDA with all the variables resulted in a high success rate of 92.86%. The associated test error is 7.14%.
+
+*(e) Perform QDA on the training data in order to predict mpg01 using the variables that seemed most associated with mpg01 in (b). What is the test error of the model obtained?*
+
+```{r}
+qda.fit = qda(mpg01~horsepower+acceleration+weight+year+displacement+cylinders, data = train)
+qda.pred = predict(qda.fit, test)
+mean(qda.pred$class != mpg01.test)
+```
+
+
+
+
+Performing QDA results in a higher test error rate of 8.16%.
+
+*(f) Perform logistic regression on the training data in order to pre- dict mpg01 using the variables that seemed most associated with mpg01 in (b). What is the test error of the model obtained?*
+
+```{r}
+glm.fit = glm(mpg01~horsepower+acceleration+weight+year+displacement+cylinders, data=train, family = 'binomial')
+glm.prob = predict(glm.fit, test, type = 'response')
+glm.pred=rep(0,length(glm.prob))
+glm.pred[glm.prob >.5]=1
+mean(glm.pred!=mpg01.test)
+```
+
+
+
+Performing lgoistic regression results in a test error rate of 16.3%.
+
+*(g) Perform KNN on the training data, with several values of K, in order to predict mpg01. Use only the variables that seemed most associated with mpg01 in (b). What test errors do you obtain? Which value of K seems to perform the best on this data set?*
+
+```{r}
+attach(Auto2)
+train.knn = cbind(horsepower,acceleration,weight,year,displacement,cylinders)[sample, ]
+test.knn = cbind(horsepower,acceleration,weight,year,displacement,cylinders)[-sample, ]
+train.mpg01 = mpg01[sample]
+set.seed(1)
+# KNN(1)
+knn.pred = knn(train.knn, test.knn, train.mpg01, k = 1)
+mean(knn.pred != mpg01.test)
+```
+
+
+
+Performing a knn(1) results in a test error rate of 9.18%.
+
+```{r}
+# KNN(3)
+knn.pred2 = knn(train.knn, test.knn, train.mpg01, k = 3)
+mean(knn.pred2 != mpg01.test)
+```
+
+
+
+Increasing it to knn(3) results in a higher test error rate of 11.22%. Hence, knn = 1 is preferable in this case. 
+
+*In Chapter 4, we used logistic regression to predict the probability of default using income and balance on the Default data set. We will now estimate the test error of this logistic regression model using the validation set approach. Do not forget to set a random seed before beginning your analysis.*
+
+*(a) Fit a logistic regression model that uses income and balance to predict default.*
+
+```{r}
+attach(Default)
+default.logit =glm(default~income + balance, data=Default,family="binomial")
+```
+
+
+*(b) Using the validation set approach, estimate the test error of this model. In order to do this, you must perform the following steps:*
+i. Split the sample set into a training set and a validation set.
+```{r}
+set.seed(1)
+default.train = Default[1:5000,]
+default.test = Default[5001:10000,]
+#We can use -default.train later
+```
+
+ii. Fit a multiple logistic regression model using only the train- ing observations.
+```{r}
+default.logit = glm(default~income + balance, data=default.train, family="binomial")
+```
+
+iii. Obtain a prediction of default status for each individual in the validation set by computing the posterior probability of default for that individual, and classifying the individual to the default category if the posterior probability is greater than 0.5.
+```{r}
+glm.pred = rep("No", 5000)
+glm.prob = predict(default.logit, default.test, type = "response")
+glm.pred[glm.prob >.5]="Yes"
+```
+
+iv. Compute the validation set error, which is the fraction of the observations in the validation set that are misclassified.
+```{r}
+mean(glm.pred!= default.test$default)
+```
+
+
+
+This implies a 2.58% error rate.
+
+(c) Repeat the process in (b) three times, using three different splits of the observations into a training set and a validation set. Comment on the results obtained.
+```{r}
+#run1
+train2 = sample(1:10000,4000)
+default.train2 = Default[train2,]
+default.test2 = Default[-train2,]
+default.logit2 = glm(default~income + balance, data=default.train2, family="binomial")
+glm.pred2 = rep("No", 6000)
+glm.prob2 = predict(default.logit2, default.test2, type = "response")
+glm.pred2[glm.prob2 >.5]="Yes"
+mean(glm.pred2!= default.test2$default)
+#run2
+train3 = sample(1:10000,3000)
+default.train3 = Default[train3,]
+default.test3 = Default[-train3,]
+default.logit3 = glm(default~income + balance, data=default.train3, family="binomial")
+glm.pred3 = rep("No", 7000)
+glm.prob3 = predict(default.logit3, default.test3, type = "response")
+glm.pred3[glm.prob3 >.5]="Yes"
+mean(glm.pred3!= default.test3$default)
+#run3
+train4 = sample(1:10000,7000)
+default.train4 = Default[train4,]
+default.test4 = Default[-train4,]
+default.logit4 = glm(default~income + balance, data=default.train4, family="binomial")
+glm.pred4 = rep("No", 3000)
+glm.prob4 = predict(default.logit4, default.test4, type = "response")
+glm.pred4[glm.prob4 >.5]="Yes"
+mean(glm.pred4!= default.test4$default)
+```
+
+
+
+Repeating the sampling a few times for different splits of the data suggests that increasing the training set may improve prediction accuracy. 
+
+(d) Now consider a logistic regression model that predicts the probability of default using income, balance, and a dummy variable for student. Estimate the test error for this model using the val- idation set approach. Comment on whether or not including a dummy variable for student leads to a reduction in the test error rate.
+
+```{r}
+train5 = sample(1:10000,7000)
+default.train5 = Default[train4,]
+default.test5 = Default[-train4,]
+default.logit5 = glm(default~income + balance +student, data=default.train5, family="binomial")
+glm.pred5 = rep("No", 3000)
+glm.prob5 = predict(default.logit5, default.test5, type = "response")
+glm.pred5[glm.prob5 >.5]="Yes"
+mean(glm.pred5!= default.test5$default)
+```
+
+
+
+When we compare this to our last run, we do not see a signficant improved in test error rates. 
+
+*9. We will now consider the Boston housing data set, from the MASS library.*
+*(a) Based on this data set, provide an estimate for the population mean of medv. Call this estimate μˆ.*
+```{r}
+attach(Boston)
+medv.mean = mean(medv)
+medv.mean
+```
+
+
+
+An estimate from the sample mean in 22.53281
+
+*(b) Provide an estimate of the standard error of μˆ. Interpret this result. Hint: We can compute the standard error of the sample mean by dividing the sample standard deviation by the square root of the number of observations.*
+```{r}
+medv.sd = sd(medv)/sqrt(length(medv))
+medv.sd
+```
+
+
+*(c) Now estimate the standard error of μˆ using the bootstrap. How does this compare to your answer from (b)?*
+```{r}
+#create  a function that computes the the mean
+mean.fn = function(data, index)return(mean(data[index]))
+btstrp = boot(medv, mean.fn, 1000)
+btstrp
+```
+
+
+
+We obtain an estimate of the std error 0.4149, which differs from our previous estimate notably. 
+
+**(d) Based on your bootstrap estimate from (c), provide a 95 % confidence interval for the mean of medv. Compare it to the results obtained using t.test(Boston$medv).Hint: You can approximate a 95 % confidence interval using the formula [μˆ − 2SE(μˆ), μˆ + 2SE(μˆ)].*
+```{r}
+#t-test method
+t.test(medv)
+#bootstrap
+left <- btstrp$t0 - 1.96*0.4149025
+right <- btstrp$t0 + 1.96*0.4149025
+ci = c(left, right)
+print(ci)
+```
+
+
+
+The confidence internval given by the bootstrap is slightly larger than that from the t-test.
+
+*(e) Based on this dataset, provide an estimate,μ_med for the median value of medv in the population.*
+```{r}
+medv.med = median(medv)
+medv.med
+```
+
+*(f) We now would like to estimate the standard error of μ_med.Unfottunately, there is no simple formula for computing the standard error of the median. Instead, estimate the standard error of the median using the bootstrap. Comment on your findings.*
+```{r}
+median.fn = function(data, index) return(median(data[index]))
+boot(medv, median.fn, 1000)
+```
+
+
+
+We obtain an estimate that is exactly the same as the median we calculated from the sample. The bootstrap also provides an estimate of the standard error, which is relatively small. 
+
+*(g) Based on this data set, provide an estimate for the tenth percentile of medv in Boston suburbs. Call this quantity μˆ (You can use the quantile() function.)*
+```{r}
+medv.percent = quantile(medv, c(0.1))
+medv.percent
+```
+
+
+
+The 10th quantile is 12.75
+
+*(h) Use the bootstrap to estimate the standard error of μˆ, comment on your findings.*
+```{r}
+percent.fn = function(data,index) return(quantile(data[index], c(0.1)))
+btstrp = boot(medv, percent.fn, 1000)
+btstrp
+```
+
+
+
+
+Our bootstrap gives us the standard error for an estimate of the tenth percentile. 
