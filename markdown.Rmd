@@ -156,7 +156,53 @@ Using QDA with the aforementioned model alongside Fare increases our accuracy to
 
 
 ```{r}
+#For the kNN model, we have to recode our factor variables as dummy variables with integer levels
+#factors are "Survived", "Pclass", "Sex", "Embarked"
+train.set.knn <- train.set
+train.set.knn$Survived <- as.numeric(as.character(train.set$Survived))
+train.set.knn$Pclass <- as.numeric(as.character(train.set$Pclass))
+train.set.knn$Sex <- as.numeric(train.set$Sex)
+train.set.knn$Embarked <- as.numeric(train.set$Embarked)
+#remove missing values
+train.set.knn <- na.omit(train.set.knn)
+#remove non-numeric variables
+train.set.knn <- subset(train.set.knn, select = -c(Name, Ticket, Cabin))
+#do for test set
+test.set.knn <- test.set
+test.set.knn$Survived <- as.numeric(as.character(test.set$Survived))
+test.set.knn$Pclass <- as.numeric(as.character(test.set$Pclass))
+test.set.knn$Sex <- as.numeric(test.set$Sex)
+test.set.knn$Embarked <- as.numeric(test.set$Embarked)
+#remove missing values
+test.set.knn <- na.omit(test.set.knn)
+#remove non-numeric variables
+test.set.knn <- subset(test.set.knn, select = -c(Name, Ticket, Cabin))
+#construct prediction vector
+train.prediction.set <- train.set.knn$Survived
+test.prediction.set <- test.set.knn$Survived
+```
+
+```{r}
+#Try kNN model again
+set.seed(123)
+#try k = 1
+knn.pred.1 = knn(train.set.knn, test.set.knn, train.prediction.set, k = 1)
+mean(test.prediction.set != knn.pred.1)
+table(knn.pred.1,test.prediction.set)
+#try k = 3
+knn.pred.3 = knn(train.set.knn, test.set.knn, train.prediction.set, k = 3)
+mean(test.prediction.set != knn.pred.3)
+table(knn.pred.3,test.prediction.set)
+```
+
+
+```{r}
 #Try kNN model
+
+
+
+
+
 train.knn = cbind(Sex,Age,Pclass,SibSp,Parch,Fare)[train.vector, ]
 test.knn = cbind(Sex,Age,Pclass,SibSp,Parch,Fare)[-train.vector, ]
 train.knn.na = c()
