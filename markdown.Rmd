@@ -35,6 +35,8 @@ library(caTools)
 library(boot)
 library(caret)
 library(e1071)
+library(Hmisc)
+Library(DMwR)
 ```
 
 
@@ -215,6 +217,25 @@ submission <- as.data.frame(test$PassengerId)
 #Create temporary column for Survived
 submission %>%
   mutate(Survived = rep(0,nrow(submission)))
+#Look at number of NAs
+colSums(is.na(test))
+#Imputation of NAs using mean/mode
+impute.test <- test
+impute.test$Age <- impute(test$Age, mean)
+impute.test$Fare <- impute(test$Fare, mean)
+impute.test$Cabin <- impute(test$Cabin, mode)
+#Imputation of NAs using kNN
+knn.impute.test <- test
+knn.impute.test$Pclass <- as.numeric(as.character(test$Pclass))
+knn.impute.test$Sex <- as.numeric(test$Sex)
+knn.impute.test$EmbC <- as.numeric(test$Embarked == "C")
+knn.impute.test$EmbQ <- as.numeric(test$Embarked == "Q")
+knn.impute.test$EmbS <- as.numeric(test$Embarked == "S")
+knn.impute.test <- subset(knn.impute.test, select = -c(Name, Ticket, Cabin, Embarked))
+knn.impute.test <- knnImputation(knn.impute.test)
+```
+
+```{r}
 #Implement QDA model
 qda.fit=qda(Survived~Sex + Age + Pclass + SibSp + Fare, data=train.set, na.action = na.omit)
 #Predict the test dataframe
