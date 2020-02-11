@@ -169,17 +169,20 @@ train.set.knn$EmbS <- as.numeric(train.set$Embarked == "S")
 #remove missing values
 train.set.knn <- na.omit(train.set.knn)
 #remove non-numeric variables
-train.set.knn <- subset(train.set.knn, select = -c(Name, Ticket, Cabin))
+train.set.knn <- subset(train.set.knn, select = -c(Name, Ticket, Cabin, Embarked))
 #do for test set
 test.set.knn <- test.set
 test.set.knn$Survived <- as.numeric(as.character(test.set$Survived))
 test.set.knn$Pclass <- as.numeric(as.character(test.set$Pclass))
 test.set.knn$Sex <- as.numeric(test.set$Sex)
-test.set.knn$Embarked <- as.numeric(test.set$Embarked)
+test.set.knn$EmbC <- as.numeric(test.set$Embarked == "C")
+test.set.knn$EmbQ <- as.numeric(test.set$Embarked == "Q")
+test.set.knn$EmbS <- as.numeric(test.set$Embarked == "S")
+
 #remove missing values
 test.set.knn <- na.omit(test.set.knn)
 #remove non-numeric variables
-test.set.knn <- subset(test.set.knn, select = -c(Name, Ticket, Cabin))
+test.set.knn <- subset(test.set.knn, select = -c(Name, Ticket, Cabin, Embarked))
 #construct prediction vector
 train.prediction.set <- train.set.knn$Survived
 test.prediction.set <- test.set.knn$Survived
