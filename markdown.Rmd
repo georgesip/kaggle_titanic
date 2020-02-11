@@ -36,7 +36,7 @@ library(boot)
 library(caret)
 library(e1071)
 library(Hmisc)
-Library(DMwR)
+library(DMwR)
 ```
 
 
@@ -221,7 +221,27 @@ submission %>%
 colSums(is.na(test))
 #Imputation of NAs using mean/mode
 impute.test <- test
-impute.test$Age <- impute(test$Age, mean)
+
+train.mr.log <- grepl("Mr.", train$Name)
+train.mrs.log <- grepl("Mrs.", train$Name)
+train.master.log <- grepl("Master", train$Name)
+train.miss.log <- grepl("Miss", train$Name)
+
+mr.age <- median(train$Age[train.mr.log], na.rm = T)
+mrs.age <- median(train$Age[train.mrs.log], na.rm = T)
+master.age <- median(train$Age[train.master.log], na.rm = T)
+miss.age <- median(train$Age[train.miss.log], na.rm = T)
+
+test.mr.log <- grepl("Mr.", test$Name)
+test.mrs.log <- grepl("Mrs.", test$Name)
+test.master.log <- grepl("Master", test$Name)
+test.miss.log <- grepl("Miss", test$Name)
+
+impute.test$Age[is.na(test$Age) & test.mr.log] <- mr.age
+impute.test$Age[is.na(test$Age) & test.mrs.log] <- mrs.age
+impute.test$Age[is.na(test$Age) & test.master.log] <- master.age
+impute.test$Age[is.na(test$Age) & test.miss.log] <- miss.age
+
 impute.test$Fare <- impute(test$Fare, mean)
 impute.test$Cabin <- impute(test$Cabin, mode)
 #Imputation of NAs using kNN
@@ -246,30 +266,6 @@ qda.class2=qda.pred2$class
 ```
 
 ```{r}
-train.mr.log <- grepl("Mr.", train$Name)
-train.mrs.log <- grepl("Mrs.", train$Name)
-train.master.log <- grepl("Master", train$Name)
-train.miss.log <- grepl("Miss", train$Name)
-
-mr.age <- median(train$Age[train.mr.log], na.rm = T)
-mrs.age <- median(train$Age[train.mrs.log], na.rm = T)
-master.age <- median(train$Age[train.master.log], na.rm = T)
-miss.age <- median(train$Age[train.miss.log], na.rm = T)
-
-mr.age
-mrs.age
-master.age
-miss.age
-
-test.mr.log <- grepl("Mr.", test$Name)
-test.mrs.log <- grepl("Mrs.", test$Name)
-test.master.log <- grepl("Master", test$Name)
-test.miss.log <- grepl("Miss", test$Name)
-
-test$Age[is.na(test$Age) & test.mr.log] <- mr.age
-test$Age[is.na(test$Age) & test.mrs.log] <- mrs.age
-test$Age[is.na(test$Age) & test.master.log] <- master.age
-test$Age[is.na(test$Age) & test.miss.log] <- miss.age
 
 ```
 
