@@ -161,16 +161,17 @@ impute.test$Age[is.na(test$Age) & test.mr.log] <- mr.age
 impute.test$Age[is.na(test$Age) & test.mrs.log] <- mrs.age
 impute.test$Age[is.na(test$Age) & test.master.log] <- master.age
 impute.test$Age[is.na(test$Age) & test.miss.log] <- miss.age
-
+impute.test$Age[is.na(impute.test$Age)] <- mean(test$Age, na.rm = TRUE)
+impute.test$Fare[is.na(impute.test$Fare)] <- mean(test$Fare, na.rm = TRUE)
 #Imputation of NAs using kNN
 impute.test$Pclass <- as.numeric(as.character(test$Pclass))
-impute.test$Sex <- as.numeric(test$Sex)
+impute.test$Sex <- as.numeric(test$Sex == "female")
 impute.test$EmbC <- as.numeric(test$Embarked == "C")
 impute.test$EmbQ <- as.numeric(test$Embarked == "Q")
 impute.test$EmbS <- as.numeric(test$Embarked == "S")
 impute.test <- subset(impute.test, select = -c(Name, Ticket, Cabin, Embarked))
 impute.test <- as.data.frame(impute.test)
-impute.test <- knnImputation(impute.test)
+#impute.test <- knnImputation(impute.test, k = 1)
 colSums(is.na(impute.test))
 ```
 
@@ -269,7 +270,4 @@ qda.pred2=predict(qda.fit, test)
 qda.class2=qda.pred2$class
 ```
 
-```{r}
-
-```
 
