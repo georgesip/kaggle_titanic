@@ -1,7 +1,6 @@
 ---
 title: "Project1"
-author: 
--"Georges Ip"
+author: "Georges Ip"
 date: "2/2/2020"
 output: pdf_document
 ---
@@ -41,13 +40,15 @@ library(DMwR)
 ```
 
 
-Import datasets
+*Import datasets*
 ```{r}
 train <- read_csv("train.csv")
 test <- read_csv("test.csv")
 ```
 
-Explore dataset
+
+
+*Explore dataset*
 ```{r}
 attach(train)
 head(train)
@@ -196,6 +197,8 @@ lda.class=lda.pred$class
 mean(lda.class==validation.set, na.rm = T)
 table(lda.class ,validation.set)
 ```
+
+
 Using LDA with all the variables results in an accuracy of 80.05%
 
 
@@ -208,6 +211,8 @@ lda.class2=lda.pred2$class
 mean(lda.class2==validation.set, na.rm = T)
 table(lda.class2 ,validation.set)
 ```
+
+
 Removing Parch and Fare using LDA results in an accuracy of 81.07%
 
 
@@ -219,7 +224,9 @@ qda.class=qda.pred$class
 mean(qda.class==validation.set, na.rm = T)
 table(qda.class ,validation.set)
 ```
-Using QDA with the aforementioned model alongside Fare increases our accuracy to 80.7%8
+
+
+Using QDA with these predictors increases our accuracy to 82.35%8
 
 
 ```{r}
@@ -254,6 +261,8 @@ mean(test.prediction.set != knn.pred.5)
 table(knn.pred.5,test.prediction.set)
 ```
 
+
+
 The accuracy of kNN is lower than our LDA and QDA methods. 
 
 ```{r}
@@ -270,7 +279,8 @@ qda.class.final=qda.pred.final$class
 submission <- mutate(submission, Survived = qda.class.final)
 names(submission) <- c("PassengerId", "Survived")
 #Create CSV
-write.csv(submission, 'qda_submission.csv')
+write.csv(submission, 'qda_submission.csv', row.names = FALSE)
 ```
 
 
+Our final submission to Kaggle returned us a score of 0.7655. 
