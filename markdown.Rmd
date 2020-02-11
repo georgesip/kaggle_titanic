@@ -1,6 +1,7 @@
 ---
 title: "Project1"
-author: "Georges Ip"
+author: 
+-"Georges Ip"
 date: "2/2/2020"
 output: pdf_document
 ---
@@ -141,12 +142,6 @@ colSums(is.na(impute.train))
 ```
 
 ```{r}
-#Construct submission .csv
-#Create a dataframe
-submission <- as.data.frame(test$PassengerId)
-#Create temporary column for Survived
-submission %>%
-  mutate(Survived = rep(0,nrow(submission)))
 #Look at number of NAs
 colSums(is.na(test))
 #Imputation of NAs using mean/mode
@@ -218,7 +213,7 @@ Removing Parch and Fare using LDA results in an accuracy of 81.07%
 
 ```{r, warning=FALSE}
 #testing QDA
-qda.fit=qda(Survived~Sex + Age + Pclass + SibSp + Fare, data=train.set, na.action = na.omit)
+qda.fit=qda(Survived~Sex + Age + Pclass + SibSp, data=train.set, na.action = na.omit)
 qda.pred=predict(qda.fit, test.set)
 qda.class=qda.pred$class
 mean(qda.class==validation.set, na.rm = T)
@@ -262,14 +257,20 @@ table(knn.pred.5,test.prediction.set)
 The accuracy of kNN is lower than our LDA and QDA methods. 
 
 ```{r}
+#Construct submission .csv
+#Create a dataframe
+dummy <- test$PassengerId
+submission <- as.data.frame(dummy)
 #Implement QDA model
-qda.fit=qda(Survived~Sex + Age + Pclass + SibSp + Fare, data=train, na.action = na.omit)
+qda.fit.final=qda(Survived~Sex + Age + Pclass + SibSp, data=impute.train, na.action = na.omit)
 #Predict the test dataframe
-qda.pred2=predict(qda.fit, test)
-qda.class2=qda.pred2$class
+qda.pred.final=predict(qda.fit.final, impute.test)
+qda.class.final=qda.pred.final$class
+#Finish constructing submission df
+submission <- mutate(submission, Survived = qda.class.final)
+names(submission) <- c("PassengerId", "Survived")
+#Create CSV
+write.csv(submission, 'qda_submission.csv')
 ```
 
-```{r}
-
-```
 
