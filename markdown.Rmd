@@ -237,9 +237,9 @@ knn.impute.test <- knnImputation(knn.impute.test)
 
 ```{r}
 #Implement QDA model
-qda.fit=qda(Survived~Sex + Age + Pclass + SibSp + Fare, data=train.set, na.action = na.omit)
+qda.fit=qda(Survived~Sex + Age + Pclass + SibSp + Fare, data=train, na.action = na.omit)
 #Predict the test dataframe
 qda.pred2=predict(qda.fit, test)
-qda.class2=qda.pred$class
+qda.class2=qda.pred2$class
 ```
 
