@@ -159,10 +159,13 @@ Using QDA with the aforementioned model alongside Fare increases our accuracy to
 #For the kNN model, we have to recode our factor variables as dummy variables with integer levels
 #factors are "Survived", "Pclass", "Sex", "Embarked"
 train.set.knn <- train.set
+
 train.set.knn$Survived <- as.numeric(as.character(train.set$Survived))
 train.set.knn$Pclass <- as.numeric(as.character(train.set$Pclass))
 train.set.knn$Sex <- as.numeric(train.set$Sex)
-train.set.knn$Embarked <- as.numeric(train.set$Embarked)
+train.set.knn$EmbC <- as.numeric(train.set$Embarked == "C")
+train.set.knn$EmbQ <- as.numeric(train.set$Embarked == "Q")
+train.set.knn$EmbS <- as.numeric(train.set$Embarked == "S")
 #remove missing values
 train.set.knn <- na.omit(train.set.knn)
 #remove non-numeric variables
