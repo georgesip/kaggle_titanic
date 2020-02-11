@@ -57,6 +57,8 @@ colSums(is.na(train))
 
 There are quite a few missing observations in Age and Cabin, as well as 2 observations in Embarked. Some of the indicator variables are also classified as num. 
 
+
+
 ```{r}
 #First, deal with the factor variables
 factors <- c("Survived", "Pclass", "Sex", "Embarked")
@@ -103,14 +105,83 @@ hist(Age[Survived == 1], add=TRUE, density = 25, col = 3, angle = 0)
 ```
 
 
+
+*Now we deal with NAs*
+```{r}
+#Construct submission .csv
+#Look at number of NAs
+colSums(is.na(train))
+#Imputation of NAs using mean/mode
+impute.train <- train
+train.mr.log <- grepl("Mr.", train$Name)
+train.mrs.log <- grepl("Mrs.", train$Name)
+train.master.log <- grepl("Master", train$Name)
+train.miss.log <- grepl("Miss", train$Name)
+
+mr.age <- median(train$Age[train.mr.log], na.rm = T)
+mrs.age <- median(train$Age[train.mrs.log], na.rm = T)
+master.age <- median(train$Age[train.master.log], na.rm = T)
+miss.age <- median(train$Age[train.miss.log], na.rm = T)
+
+impute.train$Age[is.na(train$Age) & train.mr.log] <- mr.age
+impute.train$Age[is.na(train$Age) & train.mrs.log] <- mrs.age
+impute.train$Age[is.na(train$Age) & train.master.log] <- master.age
+impute.train$Age[is.na(train$Age) & train.miss.log] <- miss.age
+
+#Imputation of remaining NAs using kNN
+impute.train$Pclass <- as.numeric(as.character(impute.train$Pclass))
+impute.train$Sex <- as.numeric(impute.train$Sex)
+impute.train$EmbC <- as.numeric(impute.train$Embarked == "C")
+impute.train$EmbQ <- as.numeric(impute.train$Embarked == "Q")
+impute.train$EmbS <- as.numeric(impute.train$Embarked == "S")
+impute.train <- subset(impute.train, select = -c(Name, Ticket, Cabin, Embarked))
+impute.train <- as.data.frame(impute.train)
+impute.train <- knnImputation(impute.train)
+colSums(is.na(impute.train))
+```
+
+```{r}
+#Construct submission .csv
+#Create a dataframe
+submission <- as.data.frame(test$PassengerId)
+#Create temporary column for Survived
+submission %>%
+  mutate(Survived = rep(0,nrow(submission)))
+#Look at number of NAs
+colSums(is.na(test))
+#Imputation of NAs using mean/mode
+impute.test <- test
+
+test.mr.log <- grepl("Mr.", test$Name)
+test.mrs.log <- grepl("Mrs.", test$Name)
+test.master.log <- grepl("Master", test$Name)
+test.miss.log <- grepl("Miss", test$Name)
+
+impute.test$Age[is.na(test$Age) & test.mr.log] <- mr.age
+impute.test$Age[is.na(test$Age) & test.mrs.log] <- mrs.age
+impute.test$Age[is.na(test$Age) & test.master.log] <- master.age
+impute.test$Age[is.na(test$Age) & test.miss.log] <- miss.age
+
+#Imputation of NAs using kNN
+impute.test$Pclass <- as.numeric(as.character(test$Pclass))
+impute.test$Sex <- as.numeric(test$Sex)
+impute.test$EmbC <- as.numeric(test$Embarked == "C")
+impute.test$EmbQ <- as.numeric(test$Embarked == "Q")
+impute.test$EmbS <- as.numeric(test$Embarked == "S")
+impute.test <- subset(impute.test, select = -c(Name, Ticket, Cabin, Embarked))
+impute.test <- as.data.frame(impute.test)
+impute.test <- knnImputation(impute.test)
+colSums(is.na(impute.test))
+```
+
 ```{r}
 #Subset the train set
 set.seed(1)
 train.vector = sample(1:891,500)
-train.set = train[train.vector,]
-test.set = train[-train.vector,]
+train.set = impute.train[train.vector,]
+test.set = impute.train[-train.vector,]
 #validation
-validation.set = train$Survived[-train.vector]
+validation.set = impute.train$Survived[-train.vector]
 ```
 
 
@@ -130,7 +201,7 @@ lda.class=lda.pred$class
 mean(lda.class==validation.set, na.rm = T)
 table(lda.class ,validation.set)
 ```
-Using LDA with all the variables results in an accuracy of 78.77%
+Using LDA with all the variables results in an accuracy of 80.05%
 
 
 
@@ -142,7 +213,7 @@ lda.class2=lda.pred2$class
 mean(lda.class2==validation.set, na.rm = T)
 table(lda.class2 ,validation.set)
 ```
-Removing Parch and Fare using LDA results in an accuracy of 80.38%
+Removing Parch and Fare using LDA results in an accuracy of 81.07%
 
 
 ```{r, warning=FALSE}
@@ -153,8 +224,7 @@ qda.class=qda.pred$class
 mean(qda.class==validation.set, na.rm = T)
 table(qda.class ,validation.set)
 ```
-Using QDA with the aforementioned model alongside Fare increases our accuracy to 80.7%
-
+Using QDA with the aforementioned model alongside Fare increases our accuracy to 80.7%8
 
 
 ```{r}
@@ -165,26 +235,8 @@ train.set.knn <- train.set
 train.set.knn$Survived <- as.numeric(as.character(train.set$Survived))
 train.set.knn$Pclass <- as.numeric(as.character(train.set$Pclass))
 train.set.knn$Sex <- as.numeric(train.set$Sex)
-train.set.knn$EmbC <- as.numeric(train.set$Embarked == "C")
-train.set.knn$EmbQ <- as.numeric(train.set$Embarked == "Q")
-train.set.knn$EmbS <- as.numeric(train.set$Embarked == "S")
-#remove missing values
-train.set.knn <- na.omit(train.set.knn)
-#remove non-numeric variables
-train.set.knn <- subset(train.set.knn, select = -c(Name, Ticket, Cabin, Embarked))
 #do for test set
 test.set.knn <- test.set
-test.set.knn$Survived <- as.numeric(as.character(test.set$Survived))
-test.set.knn$Pclass <- as.numeric(as.character(test.set$Pclass))
-test.set.knn$Sex <- as.numeric(test.set$Sex)
-test.set.knn$EmbC <- as.numeric(test.set$Embarked == "C")
-test.set.knn$EmbQ <- as.numeric(test.set$Embarked == "Q")
-test.set.knn$EmbS <- as.numeric(test.set$Embarked == "S")
-
-#remove missing values
-test.set.knn <- na.omit(test.set.knn)
-#remove non-numeric variables
-test.set.knn <- subset(test.set.knn, select = -c(Name, Ticket, Cabin, Embarked))
 #construct prediction vector
 train.prediction.set <- train.set.knn$Survived
 test.prediction.set <- test.set.knn$Survived
@@ -208,54 +260,6 @@ table(knn.pred.5,test.prediction.set)
 ```
 
 The accuracy of kNN is lower than our LDA and QDA methods. 
-
-```{r}
-#Construct submission .csv
-#We decided to use our QDA model
-#Create a dataframe
-submission <- as.data.frame(test$PassengerId)
-#Create temporary column for Survived
-submission %>%
-  mutate(Survived = rep(0,nrow(submission)))
-#Look at number of NAs
-colSums(is.na(test))
-#Imputation of NAs using mean/mode
-impute.test <- test
-
-train.mr.log <- grepl("Mr.", train$Name)
-train.mrs.log <- grepl("Mrs.", train$Name)
-train.master.log <- grepl("Master", train$Name)
-train.miss.log <- grepl("Miss", train$Name)
-
-mr.age <- median(train$Age[train.mr.log], na.rm = T)
-mrs.age <- median(train$Age[train.mrs.log], na.rm = T)
-master.age <- median(train$Age[train.master.log], na.rm = T)
-miss.age <- median(train$Age[train.miss.log], na.rm = T)
-
-test.mr.log <- grepl("Mr.", test$Name)
-test.mrs.log <- grepl("Mrs.", test$Name)
-test.master.log <- grepl("Master", test$Name)
-test.miss.log <- grepl("Miss", test$Name)
-
-impute.test$Age[is.na(test$Age) & test.mr.log] <- mr.age
-impute.test$Age[is.na(test$Age) & test.mrs.log] <- mrs.age
-impute.test$Age[is.na(test$Age) & test.master.log] <- master.age
-impute.test$Age[is.na(test$Age) & test.miss.log] <- miss.age
-
-impute.test$Fare <- impute(test$Fare, mean)
-impute.test$Cabin <- impute(test$Cabin, mode)
-#Imputation of NAs using kNN
-knn.impute.test <- test
-knn.impute.test$Pclass <- as.numeric(as.character(test$Pclass))
-knn.impute.test$Sex <- as.numeric(test$Sex)
-knn.impute.test$EmbC <- as.numeric(test$Embarked == "C")
-knn.impute.test$EmbQ <- as.numeric(test$Embarked == "Q")
-knn.impute.test$EmbS <- as.numeric(test$Embarked == "S")
-knn.impute.test <- subset(knn.impute.test, select = -c(Name, Ticket, Cabin, Embarked))
-knn.impute.test <- as.data.frame(knn.impute.test)
-knn.impute.test <- knnImputation(knn.impute.test)
-colSums(is.na(knn.impute.test))
-```
 
 ```{r}
 #Implement QDA model
